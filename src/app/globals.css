@@ -1,0 +1,84 @@
+@import "tailwindcss";
+:root {
+  --background: #ffffff;
+  --foreground: #02101d;
+
+  /* Fuentes importadas desde Next Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono), monospace;
+}
+
+/* Si quieres monospace en código */
+code, pre {
+  font-family: var(--font-mono), monospace;
+}
+
+/* Animación para dropdown */
+@keyframes slide-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-fade {
+  animation: slide-fade 0.18s ease-out forwards;
+}
+
+input,
+textarea,
+select {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #2b4b7e;
+  box-shadow: 0 0 0 1px #2b4b7e;
+}
+
+
+.date-picker-collection .rdp-months{
+  max-width:none;
+  
+}
+.date-picker-collection .rdp-month{
+  width: 100%;
+  max-width:none;
+  
+}
+.date-picker-collection .rdp-month  .rdp-month_grid{
+  width: 100%;
+
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+
+.rdp-root{
+  --rdp-accent-color:#02101d !important
+}

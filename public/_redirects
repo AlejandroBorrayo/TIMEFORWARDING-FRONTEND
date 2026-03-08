@@ -1,0 +1,6 @@
+# Redirige todo el dominio raíz al www
+https://timetrekcourriers.com/*  https://www.timetrekcourriers.com/:splat  301!
+http://timetrekcourriers.com/*   https://www.timetrekcourriers.com/:splat  301!
+
+# Asegura que HTTP www también vaya a HTTPS www
+http://www.timetrekcourriers.com/*  https://www.timetrekcourriers.com/:splat  301!
