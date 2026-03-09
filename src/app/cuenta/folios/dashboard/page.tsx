@@ -225,7 +225,7 @@ export default function FoliosDashboardPage() {
       const response = await ReportFoliosCsv(
         { page: 1, perpage: PAGE_SIZE },
         !isAdmin ? userid : null,
-        /* userEmail */ "alexborrayo21@hotmail.com",
+        userEmail,
         debouncedSellerNameFilter || undefined,
         debouncedFolioFilter || undefined,
         {
