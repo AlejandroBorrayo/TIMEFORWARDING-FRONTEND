@@ -84,11 +84,15 @@ export default function QuoteEditor({
     }
   }, [refreshTax]);
 
-  const formatCurrency = (v: number, priority?: string) =>
-    new Intl.NumberFormat("es-MX", {
+  const formatCurrency = (v: number, priority?: string) => {
+    const n = typeof v === "number" && Number.isFinite(v) ? v : 0;
+    return new Intl.NumberFormat("es-MX", {
       style: "currency",
       currency: priority ? priority : currency,
-    }).format(v || 0);
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+  };
 
   useEffect(() => {
     const hasUSDItem = items.some((item) => item?.currency === "USD");
