@@ -660,7 +660,9 @@ export default function QuoteEditor({
                       index={i}
                     ></NotesSelect>
                   ) : (
-                    <p>{n}</p>
+                    <p className="whitespace-pre-line">
+                      {typeof n === "string" ? n : (n as { note?: string })?.note ?? ""}
+                    </p>
                   )}
 
                   {mode === "edit" && (

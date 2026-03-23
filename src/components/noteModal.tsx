@@ -73,7 +73,7 @@ export default function ModalNote({
           onClick={onClose}
         >
           <motion.div
-            className="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full flex flex-col gap-6 relative"
+            className="bg-white p-8 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col gap-6 relative overflow-y-auto"
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.85 }}
@@ -94,10 +94,10 @@ export default function ModalNote({
             <div className="flex flex-col gap-2">
               <label className="font-medium">Nota *</label>
               <textarea
-                rows={4}
+                rows={18}
                 value={form.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg resize-none"
+                className="px-4 py-3 border border-gray-300 rounded-lg resize-y min-h-[min(420px,50vh)] w-full text-sm leading-relaxed whitespace-pre-wrap"
               />
               {errors.note && (
                 <p className="text-red-500 text-sm">{errors.note}</p>

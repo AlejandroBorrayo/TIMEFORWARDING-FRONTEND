@@ -128,7 +128,7 @@ export default function NotesAndTaxesPage() {
       </motion.h1>
 
       {/* ===================== GRID ===================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-6">
         {/* ===================== TAXES ===================== */}
         <section className="bg-white border border-gray-300 rounded-xl p-4">
           <div className="flex justify-between mb-6">
@@ -303,9 +303,11 @@ export default function NotesAndTaxesPage() {
                       className="border-b border-gray-300 hover:bg-gray-50"
                     >
                       <td className="px-4 py-3">
-                        <div className="flex justify-between items-center gap-3">
-                          <span className="font-medium">{note.note}</span>
-                          <div className="flex items-center gap-2">
+                        <div className="flex justify-between items-start gap-4">
+                          <span className="font-medium whitespace-pre-line break-words min-w-0 flex-1 text-left">
+                            {note.note}
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
                             <button
                               onClick={() => {
                                 setEditingNote({
@@ -348,7 +350,9 @@ export default function NotesAndTaxesPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <p className="font-semibold">{note.note}</p>
+                  <p className="font-semibold whitespace-pre-line break-words">
+                    {note.note}
+                  </p>
                   <div className="mt-3 flex gap-2">
                     <button
                       onClick={() => {
