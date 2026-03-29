@@ -1,4 +1,9 @@
 import axios from "axios";
+import {
+  getStoredCompanyId,
+  withCompanyId,
+  withCompanyQuery,
+} from "@/lib/withCompanyId";
 import type { PageOptionsDto, PageMetaDto } from "@/type/general";
 import type { FolioDtoInterface } from "@/type/folio.dto";
 import type { FolioCollectionInterface } from "@/type/folio.interface";
@@ -31,7 +36,7 @@ export const FindAll = async (
   const sellerUseridFilter = filters?.seller_filter_userid?.trim();
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/folio/all`,
-    {
+    withCompanyId({
       pagination,
       seller_userid: sellerUseridFilter || seller_userid,
       seller_name,
@@ -41,7 +46,7 @@ export const FindAll = async (
       start_date: filters?.start_date,
       end_date: filters?.end_date,
       supplier: filters?.supplier,
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -63,7 +68,7 @@ export const ReportCsv = async (
   const sellerUseridFilter = filters?.seller_filter_userid?.trim();
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/folio/report/csv`,
-    {
+    withCompanyId({
       pagination,
       seller_userid: sellerUseridFilter || seller_userid,
       email,
@@ -74,7 +79,7 @@ export const ReportCsv = async (
       start_date: filters?.start_date,
       end_date: filters?.end_date,
       supplier: filters?.supplier,
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -90,6 +95,7 @@ export const Find = async (_id: string): Promise<FolioCollectionInterface> => {
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },
+    params: withCompanyQuery(),
   });
 
   return data;
@@ -100,7 +106,32 @@ export const Create = async (
 ): Promise<FolioCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/folio`,
-    { ...body },
+    withCompanyId({ ...body }),
+    {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
+      },
+    }
+  );
+  return data;
+};
+
+/** Crea un folio vacío (sin costo de servicio). Body alineado con CreateFolioWithoutCostDto. */
+export const CreateFolioWithoutCost = async (body: {
+  seller_userid: string;
+  folio: string;
+}): Promise<FolioCollectionInterface> => {
+  const company_id = getStoredCompanyId();
+  if (!company_id) {
+    throw new Error("Selecciona una empresa activa antes de crear el folio.");
+  }
+  const { data } = await axios.post(
+    `${NEXT_PUBLIC_API_URL}/folio/sin-costo`,
+    {
+      seller_userid: body.seller_userid,
+      company_id,
+      folio: body.folio.trim(),
+    },
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -112,11 +143,18 @@ export const Create = async (
 
 export const SetServiceCostActive = async (body: {
   folio: string;
-  no_service_cost: string;
+  /** Si se omite, el backend puede crear/activar solo con el número de folio. */
+  no_service_cost?: string;
 }): Promise<FolioCollectionInterface> => {
+  const payload: { folio: string; no_service_cost?: string } = {
+    folio: body.folio,
+  };
+  if (body.no_service_cost != null && body.no_service_cost !== "") {
+    payload.no_service_cost = body.no_service_cost;
+  }
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/folio/service-cost-active`,
-    { ...body },
+    withCompanyId(payload),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -132,7 +170,7 @@ export const SetQuoteActive = async (body: {
 }): Promise<FolioCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/folio/quote-active`,
-    { ...body },
+    withCompanyId({ ...body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -151,6 +189,7 @@ export const SupplierHistory = async (
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
       },
+      params: withCompanyQuery(),
     }
   );
   return data;
@@ -163,7 +202,7 @@ export const PaymentSupplier = async (payload: {
 }): Promise<SupplierHistoryItem[]> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/supplier-payment`,
-    payload,
+    withCompanyId(payload),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -180,7 +219,7 @@ export const CancelPaymentSupplier = async (payload: {
 }): Promise<SupplierHistoryItem[]> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/supplier-cancel-payment`,
-    payload,
+    withCompanyId(payload),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -198,6 +237,7 @@ export const GetOrderSuppliers = async (folio:string): Promise<OrderSupplierGrou
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
       },
+      params: withCompanyQuery(),
     }
   );
 

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import type { UserCollectionInterface } from "@/type/user.interface";
 import { PageMetaDto } from "@/type/general";
 
@@ -10,6 +11,7 @@ export const getUser = async (
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },
+    params: withCompanyQuery(),
   });
   return data;
 };
@@ -21,7 +23,7 @@ export const findAllUsers = async (
 ): Promise<PageMetaDto<UserCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/user/all`,
-    { userid, pagination, search },
+    withCompanyId({ userid, pagination, search }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -37,7 +39,7 @@ export const updateUser = async (
 ): Promise<UserCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/user/${userid}`,
-    user,
+    withCompanyId({ ...(user ?? {}) }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -52,7 +54,7 @@ export const inviteUser = async (
 ): Promise<UserCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/invite`,
-    { name,email },
+    withCompanyId({ name, email }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -68,7 +70,7 @@ export const register = async (
 ): Promise<UserCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/invite/accept`,
-    { ...user, invite },
+    withCompanyId({ ...user, invite }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

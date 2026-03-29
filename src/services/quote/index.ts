@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import type { QuoteDto } from "@/type/quote.dto";
 import type {
   FolioCollectionInterface,
@@ -12,7 +13,7 @@ export const Create = async (
 ): Promise<FolioCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/quote`,
-    { ...body },
+    withCompanyId({ ...body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -27,13 +28,15 @@ export const FindByCustomer = async (
   customerId: string,
   seller_id?: string,
 ): Promise<QuoteByCustomerItem[]> => {
-  const params = seller_id ? `?seller_id=${seller_id}` : "";
   const { data } = await axios.get(
-    `${NEXT_PUBLIC_API_URL}/quotes-by-customer/${customerId}${params}`,
+    `${NEXT_PUBLIC_API_URL}/quotes-by-customer/${customerId}`,
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
       },
+      params: withCompanyQuery(
+        seller_id ? { seller_id } : undefined,
+      ),
     }
   );
 
@@ -47,7 +50,7 @@ export const CustomerPayment = async (payload: {
 }): Promise<unknown> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/customer-payment`,
-    payload,
+    withCompanyId(payload),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -63,7 +66,7 @@ export const CustomerCancelPayment = async (payload: {
 }): Promise<unknown> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/customer-cancel-payment`,
-    payload,
+    withCompanyId(payload),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

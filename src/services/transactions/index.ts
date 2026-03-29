@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId } from "@/lib/withCompanyId";
 import type { TransactionCollectionInterface } from "@/type/transaction.interface";
 import type { PageOptionsDto, PageMetaDto } from "@/type/general";
 import type { CreateTransactionInterface } from "@/type/transaction.create.interface";
@@ -13,12 +14,12 @@ export const FindAll = async (
 ): Promise<PageMetaDto<TransactionCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/transaction/all`,
-    {
+    withCompanyId({
       userid,
       pagination,
       start_date,
       end_date
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -35,7 +36,7 @@ export const Create = async (
 ): Promise<TransactionCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/transaction`,
-    { ...body, userid },
+    withCompanyId({ ...body, userid }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

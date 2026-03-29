@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId } from "@/lib/withCompanyId";
 import { PageMetaDto, PageOptionsDto } from "@/type/general";
 import {
   CartaporteCollectionInterface,
@@ -12,10 +13,10 @@ export const FindAll = async (
 ): Promise<PageMetaDto<CartaporteCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/cartaporte/all`,
-    {
+    withCompanyId({
       search,
       pagination,
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import type { taxCollectionInterface } from "@/type/tax.interface";
 import type { PageOptionsDto, PageMetaDto } from "@/type/general";
 
@@ -10,9 +11,10 @@ export const FindAll = async (
 ): Promise<PageMetaDto<taxCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/tax/all`,
-    {
+    withCompanyId({
       pagination,
-    },
+      search: search ?? "",
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -28,6 +30,7 @@ export const Find = async (noteid: string): Promise<taxCollectionInterface> => {
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },
+    params: withCompanyQuery(),
   });
 
   return data;
@@ -39,7 +42,7 @@ export const UpdateTax = async (
 ): Promise<taxCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/tax/${_id}`,
-    payload,
+    withCompanyId({ ...payload }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -55,7 +58,7 @@ export const Update = UpdateTax;
 export const Delete = async (_id: string): Promise<taxCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/tax/${_id}`,
-    { deleted: true },
+    withCompanyId({ deleted: true }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -70,7 +73,7 @@ export const Create = async (payload: {
   name: string;
   amount: number;
 }): Promise<taxCollectionInterface> => {
-  const { data } = await axios.post(`${NEXT_PUBLIC_API_URL}/tax`, payload, {
+  const { data } = await axios.post(`${NEXT_PUBLIC_API_URL}/tax`, withCompanyId(payload), {
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },

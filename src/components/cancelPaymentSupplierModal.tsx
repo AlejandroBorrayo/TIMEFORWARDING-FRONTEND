@@ -46,7 +46,7 @@ export default function ModalConfirmCancelPayment({
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/40"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

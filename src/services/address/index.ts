@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import type { AddressCollectionInterface } from "@/type/address.interface";
 import type { PageOptionsDto, PageMetaDto } from "@/type/general";
 
@@ -11,11 +12,11 @@ export const FindAll = async (
 ): Promise<PageMetaDto<AddressCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/address/all`,
-    {
+    withCompanyId({
       userid,
       pagination,
       search,
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -35,6 +36,7 @@ export const Find = async (
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
       },
+      params: withCompanyQuery(),
     }
   );
 
@@ -47,7 +49,7 @@ export const Update = async (
 ): Promise<AddressCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/address/${addressid}`,
-    body,
+    withCompanyId({ ...body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -63,7 +65,7 @@ export const Delete = async (
 ): Promise<AddressCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/address/${addressid}`,
-    { deleted: true },
+    withCompanyId({ deleted: true }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -80,7 +82,7 @@ export const Create = async (
 ): Promise<AddressCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/address`,
-    { userid, ...body },
+    withCompanyId({ userid, ...body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

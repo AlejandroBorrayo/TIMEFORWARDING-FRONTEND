@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import type {
   QuotationSoloenviosRequest,
   Quotation,
@@ -36,7 +37,7 @@ const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 export const CreateQuoteSoloenvios = async (
   body: QuotationSoloenviosRequest
 ): Promise<Quotation> => {
-  const { data } = await axios.post(`${NEXT_PUBLIC_API_URL}/soloenvios/quote`, body, {
+  const { data } = await axios.post(`${NEXT_PUBLIC_API_URL}/soloenvios/quote`, withCompanyId(body), {
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },
@@ -48,7 +49,7 @@ export const CreateQuoteSoloenvios = async (
 export const CreateQuoteSkydropx = async (
   body: QuotationSoloenviosRequest
 ): Promise<Quotation> => {
-  const { data } = await axios.post(`${NEXT_PUBLIC_API_URL}/skydropx/quote`, body, {
+  const { data } = await axios.post(`${NEXT_PUBLIC_API_URL}/skydropx/quote`, withCompanyId(body), {
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },
@@ -65,7 +66,7 @@ export const CreateShipmentSoloenvios = async (
 ): Promise<ShipmentCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/shipment`,
-    { userid, shipment: body, source },
+    withCompanyId({ userid, shipment: body, source }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -83,6 +84,7 @@ export const FindShipment = async (
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },
+    params: withCompanyQuery(),
   });
 
   return data;
@@ -99,7 +101,7 @@ export const FindAllShipment = async (
 ): Promise<PageMetaDto<ShipmentCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/shipment/all`,
-    {
+    withCompanyId({
       userid,
       pagination,
       search,
@@ -107,7 +109,7 @@ export const FindAllShipment = async (
       end_date,
       status,
       collection_available
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

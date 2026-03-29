@@ -103,6 +103,7 @@ const staticSegmentLabels: Record<string, string> = {
   recolecciones: "Recolecciones",
   resumen: "Resumen",
   dashboard: "Dashboard",
+  empresas: "Empresas",
   costo: "Costos",
   nuevo: "Nuevo",
 };
@@ -329,6 +330,11 @@ export const BREADCRUMB_MAP: Record<
   "/cuenta/recolecciones": () => [
     { label: "Cuenta", href: ACCOUNT_HOME },
     { label: "Recolecciones" },
+  ],
+
+  "/cuenta/empresas": () => [
+    { label: "Cuenta", href: ACCOUNT_HOME },
+    { label: "Empresas" },
   ],
 };
 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { DotsVerticalIcon } from "@radix-ui/react-icons";
 import {
+  CreateFolioWithoutCost,
   FindAll as FindAllFolios,
   SetQuoteActive,
   SetServiceCostActive,
@@ -21,6 +22,61 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Toast } from "@/components/toast";
 
 const PAGE_SIZE = 5;
+/** Tamaño de página al barrer todos los folios para calcular el siguiente código. */
+const SUGGEST_FOLIO_PER_PAGE = 500;
+/** Límite de seguridad por si el API devolviera totalpages incorrecto. */
+const SUGGEST_FOLIO_MAX_PAGES = 2000;
+
+/** Prefijo fijo del folio; el conteo numérico va después (TIME0001, TIME00000134, …). */
+const FOLIO_SLUG_PREFIX = "TIME";
+const FOLIO_SLUG_PAD = 4;
+
+type SlugSeqAccumulator = {
+  maxSeq: number;
+  hasSlug: boolean;
+  maxDigitLen: number;
+};
+
+function parseSlugSequenceDetail(
+  folio: string,
+): { value: number; digitLen: number } | null {
+  const m = String(folio ?? "")
+    .trim()
+    .match(new RegExp(`^${FOLIO_SLUG_PREFIX}(\\d+)$`, "i"));
+  if (!m) return null;
+  const digits = m[1];
+  const n = parseInt(digits, 10);
+  if (Number.isNaN(n)) return null;
+  return { value: n, digitLen: digits.length };
+}
+
+function accumulateSlugSequences(
+  records: FolioCollectionInterface[],
+  acc: SlugSeqAccumulator,
+): void {
+  for (const f of records) {
+    const d = parseSlugSequenceDetail(f.folio ?? "");
+    if (d) {
+      acc.hasSlug = true;
+      acc.maxSeq = Math.max(acc.maxSeq, d.value);
+      acc.maxDigitLen = Math.max(acc.maxDigitLen, d.digitLen);
+    }
+  }
+}
+
+/** Siguiente código: max secuencia numérica en TIME* + 1; padding al mayor ancho visto (mín. 4). */
+function formatNextSlugFromAccumulator(acc: SlugSeqAccumulator): string {
+  if (!acc.hasSlug) {
+    return `${FOLIO_SLUG_PREFIX}${String(1).padStart(FOLIO_SLUG_PAD, "0")}`;
+  }
+  const next = acc.maxSeq + 1;
+  const pad = Math.max(
+    FOLIO_SLUG_PAD,
+    acc.maxDigitLen,
+    String(next).length,
+  );
+  return `${FOLIO_SLUG_PREFIX}${String(next).padStart(pad, "0")}`;
+}
 
 export default function FoliosPage() {
   const router = useRouter();
@@ -56,6 +112,11 @@ export default function FoliosPage() {
   /** 👇 estados para dropdown */
   const [openFolios, setOpenFolios] = useState<Record<string, boolean>>({});
   const [openCosts, setOpenCosts] = useState<Record<string, boolean>>({});
+
+  const [createFolioModalOpen, setCreateFolioModalOpen] = useState(false);
+  const [suggestedFolio, setSuggestedFolio] = useState("");
+  const [preparingSuggestedFolio, setPreparingSuggestedFolio] = useState(false);
+  const [creatingFolio, setCreatingFolio] = useState(false);
 
   const fetchFolios = useCallback(async () => {
     setLoading(true);
@@ -129,6 +190,81 @@ export default function FoliosPage() {
     }
   };
 
+  const openCreateFolioModal = useCallback(async () => {
+    setCreateFolioModalOpen(true);
+    setPreparingSuggestedFolio(true);
+    setSuggestedFolio("");
+    const acc: SlugSeqAccumulator = {
+      maxSeq: 0,
+      hasSlug: false,
+      maxDigitLen: 0,
+    };
+    if (!is_admin && !userid) {
+      setSuggestedFolio(
+        `${FOLIO_SLUG_PREFIX}${String(1).padStart(FOLIO_SLUG_PAD, "0")}`,
+      );
+      setPreparingSuggestedFolio(false);
+      return;
+    }
+    try {
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const res = await FindAllFolios(
+          { page, perpage: SUGGEST_FOLIO_PER_PAGE },
+          !is_admin ? userid : null,
+          undefined,
+          undefined,
+        );
+        totalPages = Math.max(1, res.totalpages ?? 1);
+        accumulateSlugSequences(res.records ?? [], acc);
+        page += 1;
+      } while (page <= totalPages && page <= SUGGEST_FOLIO_MAX_PAGES);
+
+      setSuggestedFolio(formatNextSlugFromAccumulator(acc));
+    } catch {
+      setSuggestedFolio(`${FOLIO_SLUG_PREFIX}${String(1).padStart(FOLIO_SLUG_PAD, "0")}`);
+      setToast({
+        visible: true,
+        message: `No se pudo calcular el folio sugerido; se usará ${FOLIO_SLUG_PREFIX}${String(1).padStart(FOLIO_SLUG_PAD, "0")}.`,
+        type: "error",
+      });
+    } finally {
+      setPreparingSuggestedFolio(false);
+    }
+  }, [is_admin, userid]);
+
+  const confirmCreateFolio = async () => {
+    const folio = suggestedFolio.trim();
+    if (!folio || preparingSuggestedFolio || !userid) return;
+    setCreatingFolio(true);
+    try {
+      await CreateFolioWithoutCost({
+        seller_userid: userid,
+        folio,
+      });
+      setToast({
+        visible: true,
+        message: `Folio ${folio} creado correctamente`,
+        type: "success",
+      });
+      setCreateFolioModalOpen(false);
+      await fetchFolios();
+    } catch (e) {
+      const msg =
+        e instanceof Error && e.message.includes("empresa")
+          ? e.message
+          : "No se pudo crear el folio. Intenta de nuevo.";
+      setToast({
+        visible: true,
+        message: msg,
+        type: "error",
+      });
+    } finally {
+      setCreatingFolio(false);
+    }
+  };
+
   useEffect(() => {
     setPage(1);
   }, [debouncedFolioSearch, debouncedSellerName]);
@@ -193,12 +329,13 @@ export default function FoliosPage() {
           />
         )}
 
-        <Link
-          href="/cuenta/folios/nuevo"
-          className="px-4 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32]"
+        <button
+          type="button"
+          onClick={() => void openCreateFolioModal()}
+          className="px-4 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] cursor-pointer"
         >
           Crear folio
-        </Link>
+        </button>
         {is_admin && (
           <Link
             href="/cuenta/folios/dashboard"
@@ -732,6 +869,118 @@ export default function FoliosPage() {
           Siguiente
         </button>
       </div>
+
+      <AnimatePresence>
+        {createFolioModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              if (!creatingFolio && !preparingSuggestedFolio) {
+                setCreateFolioModalOpen(false);
+              }
+            }}
+          >
+            <motion.div
+              className="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full flex flex-col gap-4 relative"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                disabled={creatingFolio || preparingSuggestedFolio}
+                onClick={() => setCreateFolioModalOpen(false)}
+                className="absolute top-4 right-4 text-black hover:text-gray-700 text-lg disabled:opacity-50"
+              >
+                ×
+              </button>
+              <h3 className="text-xl font-semibold text-[#02101d] pr-8">
+                Confirmar nuevo folio
+              </h3>
+              <p className="text-sm text-gray-600">
+                Se creará un folio <strong>sin costo de servicio</strong>. Por
+                defecto el identificador sigue el formato{" "}
+                <strong>
+                  {FOLIO_SLUG_PREFIX}
+                  {String(1).padStart(FOLIO_SLUG_PAD, "0")}
+                </strong>
+                ,{" "}
+                <strong>
+                  {FOLIO_SLUG_PREFIX}
+                  {String(2).padStart(FOLIO_SLUG_PAD, "0")}
+                </strong>
+                , …: recorremos <strong>todos</strong> los folios de la empresa
+                (paginando en lotes de {SUGGEST_FOLIO_PER_PAGE}), tomamos el mayor
+                número entre los que empiezan por{" "}
+                <code className="text-xs bg-gray-100 px-1 rounded">{FOLIO_SLUG_PREFIX}</code>{" "}
+                y sumamos 1. Si no hay
+                ninguno, se sugiere{" "}
+                <strong>
+                  {FOLIO_SLUG_PREFIX}
+                  {String(1).padStart(FOLIO_SLUG_PAD, "0")}
+                </strong>
+                . Necesitas <strong>empresa activa</strong> en el menú superior.
+              </p>
+              {!userid && (
+                <p className="text-sm text-amber-700">
+                  No hay sesión de usuario; no se puede crear el folio.
+                </p>
+              )}
+              {preparingSuggestedFolio ? (
+                <p className="text-sm text-gray-500">Calculando folio…</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700">
+                    Slug del folio (ej. {FOLIO_SLUG_PREFIX}
+                    {String(1).padStart(FOLIO_SLUG_PAD, "0")})
+                  </label>
+                  <input
+                    type="text"
+                    value={suggestedFolio}
+                    onChange={(e) => setSuggestedFolio(e.target.value)}
+                    disabled={creatingFolio}
+                    className="px-4 py-2 border border-gray-300 rounded-lg w-full font-mono"
+                  />
+                </div>
+              )}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={creatingFolio || preparingSuggestedFolio}
+                  onClick={() => setCreateFolioModalOpen(false)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    creatingFolio ||
+                    preparingSuggestedFolio ||
+                    !suggestedFolio.trim() ||
+                    !userid
+                  }
+                  onClick={() => void confirmCreateFolio()}
+                  className="px-4 py-2 rounded-xl bg-[#02101d] text-white hover:bg-[#0e1b32] disabled:opacity-50 cursor-pointer"
+                >
+                  {creatingFolio ? "Creando…" : "Confirmar y crear"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((t) => ({ ...t, visible: false }))}
+      />
     </div>
   );
 }

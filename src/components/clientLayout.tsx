@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Header from "@/components/header";
 import Sidebar from "@/components/sidebar";
 import { useAuth } from "./authProvider";
+import { SelectedCompanyProvider } from "@/context/selectedCompanyContext";
 
 export default function ClientLayout({
   children
@@ -13,9 +14,8 @@ export default function ClientLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { session } = useAuth();
 
-
   return (
-    <>
+    <SelectedCompanyProvider>
       <Sidebar session={session} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header session={session} onOpenSidebar={() => setSidebarOpen(true)} />
 
@@ -30,6 +30,6 @@ export default function ClientLayout({
           {children}
         </main>
       </div>
-    </>
+    </SelectedCompanyProvider>
   );
 }

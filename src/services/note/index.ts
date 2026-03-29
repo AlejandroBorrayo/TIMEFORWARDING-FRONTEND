@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import type { NoteCollectionInterface } from "@/type/note.interface";
 import type { PageOptionsDto, PageMetaDto } from "@/type/general";
 
@@ -10,10 +11,10 @@ export const FindAll = async (
 ): Promise<PageMetaDto<NoteCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/note/all`,
-    {
+    withCompanyId({
       pagination,
       search
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -31,6 +32,7 @@ export const Find = async (
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },
+    params: withCompanyQuery(),
   });
 
   return data;
@@ -47,7 +49,7 @@ export const UpdateNote = async (
 ): Promise<NoteCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/note/${noteid}`,
-    payload,
+    withCompanyId({ ...payload }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -75,7 +77,7 @@ export const Delete = async (
 ): Promise<NoteCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/note/${noteid}`,
-    { deleted: true },
+    withCompanyId({ deleted: true }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -91,7 +93,7 @@ export const Create = async (
 ): Promise<NoteCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/note`,
-    { note },
+    withCompanyId({ note }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

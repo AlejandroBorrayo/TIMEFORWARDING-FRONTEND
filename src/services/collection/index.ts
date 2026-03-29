@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import { PageMetaDto, PageOptionsDto } from "@/type/general";
 import {
   CollectionCollectionInterface,
@@ -17,13 +18,13 @@ export const FindAll = async (
 ): Promise<PageMetaDto<CollectionCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/collection/all`,
-    {
+    withCompanyId({
       userid,
       pagination,
       start_date,
       end_date,
       status,
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -43,6 +44,7 @@ export const AvailableDatesSoloenvios = async (
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
       },
+      params: withCompanyQuery(),
     }
   );
 
@@ -58,6 +60,7 @@ export const AvailableDatesSkydropx = async (
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
       },
+      params: withCompanyQuery(),
     }
   );
 
@@ -70,7 +73,7 @@ export const Create = async (
 ): Promise<CollectionCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/collection`,
-    { userid, collection: body },
+    withCompanyId({ userid, collection: body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -88,6 +91,7 @@ export const Find = async (
     headers: {
       "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
     },
+    params: withCompanyQuery(),
   });
 
   return data;

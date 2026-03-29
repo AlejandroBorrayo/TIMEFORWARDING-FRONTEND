@@ -2,7 +2,14 @@
 "use client";
 
 import { Session } from "next-auth";
-import { useState, createContext, useContext, ReactNode } from "react";
+import {
+  useState,
+  createContext,
+  useContext,
+  ReactNode,
+  useEffect,
+} from "react";
+import { setStoredCreatorUserId } from "@/lib/withCompanyId";
 
 type AuthContextType = {
   session: Session;
@@ -11,8 +18,19 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ session: initialSession, children }: { session: Session; children: ReactNode }) {
+export function AuthProvider({
+  session: initialSession,
+  children,
+}: {
+  session: Session;
+  children: ReactNode;
+}) {
   const [session, setSession] = useState(initialSession);
+
+  useEffect(() => {
+    const sub = session?.user?.sub?.trim();
+    setStoredCreatorUserId(sub || null);
+  }, [session]);
 
   return (
     <AuthContext.Provider value={{ session, setSession }}>

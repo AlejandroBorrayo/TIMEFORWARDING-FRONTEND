@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import type { SupplierCollectionInterface } from "@/type/supplier.interface";
 import type { PageOptionsDto, PageMetaDto } from "@/type/general";
 
@@ -11,10 +12,10 @@ export const FindAll = async (
 ): Promise<PageMetaDto<SupplierCollectionInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/supplier/all`,
-    {
+    withCompanyId({
       pagination,
       search,
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -34,6 +35,7 @@ export const Find = async (
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
       },
+      params: withCompanyQuery(),
     }
   );
 
@@ -46,7 +48,7 @@ export const Update = async (
 ): Promise<SupplierCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/supplier/${customer_id}`,
-    body,
+    withCompanyId({ ...body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -62,7 +64,7 @@ export const Delete = async (
 ): Promise<SupplierCollectionInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/customer/${customer_id}`,
-    { deleted: true },
+    withCompanyId({ deleted: true }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -78,7 +80,7 @@ export const Create = async (
 ): Promise<SupplierCollectionInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/supplier`,
-    { ...body },
+    withCompanyId({ ...body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

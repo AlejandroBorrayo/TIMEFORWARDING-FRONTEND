@@ -1,4 +1,5 @@
 import axios from "axios";
+import { withCompanyId, withCompanyQuery } from "@/lib/withCompanyId";
 import type { CustomerInterface } from "@/type/customer.interface";
 import type { PageOptionsDto, PageMetaDto } from "@/type/general";
 import {  CustomerForm } from "@/components/createCustomerModal";
@@ -12,10 +13,10 @@ export const FindAll = async (
 ): Promise<PageMetaDto<CustomerInterface>> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/customer/all`,
-    {
+    withCompanyId({
       pagination,
       search,
-    },
+    }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -35,6 +36,7 @@ export const Find = async (
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
       },
+      params: withCompanyQuery(),
     }
   );
 
@@ -47,7 +49,7 @@ export const Update = async (
 ): Promise<CustomerInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/customer/${customer_id}`,
-    body,
+    withCompanyId({ ...body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -63,7 +65,7 @@ export const Delete = async (
 ): Promise<CustomerInterface> => {
   const { data } = await axios.put(
     `${NEXT_PUBLIC_API_URL}/customer/${customer_id}`,
-    { deleted: true },
+    withCompanyId({ deleted: true }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -79,7 +81,7 @@ export const Create = async (
 ): Promise<CustomerInterface> => {
   const { data } = await axios.post(
     `${NEXT_PUBLIC_API_URL}/customer`,
-    { ...body },
+    withCompanyId({ ...body }),
     {
       headers: {
         "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
