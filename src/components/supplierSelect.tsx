@@ -18,6 +18,7 @@ export default function SupplierSelect({
   onChange,
   error,
   setOpenNewSupplier,
+  onBeforeOpenNewSupplier,
   refreshSupplier,
   setRefreshSupplier,
   mode,
@@ -26,6 +27,8 @@ export default function SupplierSelect({
   onChange: (val: string) => void;
   error?: boolean;
   setOpenNewSupplier: (open: boolean) => void;
+  /** Fila del ítem que abre el modal (para asignar el proveedor recién creado). */
+  onBeforeOpenNewSupplier?: () => void;
   refreshSupplier: boolean;
   setRefreshSupplier: (refresh: boolean) => void;
   mode: string;
@@ -182,6 +185,7 @@ export default function SupplierSelect({
         <div
           onClick={() => {
             setOpen(false);
+            onBeforeOpenNewSupplier?.();
             setOpenNewSupplier(true);
           }}
           className="

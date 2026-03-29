@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
     NEXT_BANK_CLABE: process.env.NEXT_BANK_CLABE,
     NEXT_BANK_PLACEHODER: process.env.NEXT_BANK_PLACEHODER,
     NEXT_WHATSAPP_TIME_TREK: process.env.NEXT_WHATSAPP_TIME_TREK,
+    /** Landing: botón flotante WhatsApp (también se puede pasar vía prop desde app/page). */
+    NEXT_TIME_WHATS_APP: process.env.NEXT_TIME_WHATS_APP,
+    NEXT_PUBLIC_NEXT_TIME_WHATS_APP:
+      process.env.NEXT_PUBLIC_NEXT_TIME_WHATS_APP,
     NEXT_QUOTE_OPTION: process.env.NEXT_QUOTE_OPTION,
     
   

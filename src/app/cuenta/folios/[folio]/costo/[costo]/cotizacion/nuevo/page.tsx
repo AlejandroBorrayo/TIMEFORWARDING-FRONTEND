@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import QuoteEditor from "./../../../../../../../../components/quoteEditor";
 import type { CustomerInterface } from "@/type/folio.interface";
@@ -11,6 +11,7 @@ import { QuoteDto } from "@/type/quote.dto";
 import { ContactInterface } from "@/type/customer.interface";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/toast";
+import { isValidMongoObjectId } from "@/app/utils";
 
 export default function QuoteCreatePage() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function QuoteCreatePage() {
   const [contact, setContact] = useState<ContactInterface | null>(null);
   const [validUntil, setValidUntil] = useState<Date | null>(null);
   const [notes, setNotes] = useState<{ note: string; _id: string }[]>([]);
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
@@ -73,6 +76,19 @@ export default function QuoteCreatePage() {
   const handleCreateQuote = async () => {
     try {
       setLoadingServiceCost(true);
+      const missingSupplier = items?.some(
+        (item) => !isValidMongoObjectId(item?.supplier?._id),
+      );
+      if (missingSupplier) {
+        setToast({
+          visible: true,
+          message:
+            "Cada concepto debe tener un proveedor válido. Selecciona uno en todas las filas o vuelve a elegirlo si acabas de crear uno.",
+          type: "error",
+        });
+        setLoadingServiceCost(false);
+        return;
+      }
       const folio = await FindFolio(currentFolio);
       const cost_service = folio?.service_cost?.find(
         (cost) => cost.no_service_cost === currentCost
@@ -87,11 +103,17 @@ export default function QuoteCreatePage() {
         : allItemsAreMXN
         ? "MXN"
         : currency;
+      const latestNotes = notesRef.current;
+      const noteLines = latestNotes
+        .map((n) =>
+          typeof n === "string" ? n.trim() : (n?.note ?? "").trim(),
+        )
+        .filter((line) => line.length > 0);
       const quote: QuoteDto = {
         seller_userid: userid,
         customer_id: customer?._id,
         currency: quoteCurrency,
-        notes: notes.map((n) => n.note),
+        notes: noteLines,
         period_end_date: validUntil,
         contact_id: contact?._id,
         folio: currentFolio,
@@ -111,7 +133,6 @@ export default function QuoteCreatePage() {
       };
 
       const quote_create = await CreateQuote(quote);
-      console.log("lfkflh")
       setToast({
         visible: true,
         message: "Se creó la cotización correctamente",
@@ -120,8 +141,6 @@ export default function QuoteCreatePage() {
       const sleep = (ms: number) =>
         new Promise((resolve) => setTimeout(resolve, ms));
       await sleep(4000);
-      console.log("quote_createquote_createquote_create",JSON.stringify(quote_create))
-      console.log("currentCostcurrentCost",currentCost)
       const find_service_cost = quote_create?.service_cost.find(
         (service) => service.no_service_cost === currentCost
       );
@@ -172,6 +191,16 @@ export default function QuoteCreatePage() {
     setNotes((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const pickCatalogNote = useCallback((text: string) => {
+    setNotes((prev) => {
+      const i = prev.findIndex((n) => !n.note?.trim());
+      if (i !== -1) {
+        return prev.map((n, j) => (j === i ? { ...n, note: text } : n));
+      }
+      return [...prev, { _id: crypto.randomUUID(), note: text }];
+    });
+  }, []);
+
   useEffect(() => {
     if (currentFolio) {
       if (isMounted) return;
@@ -219,6 +248,7 @@ export default function QuoteCreatePage() {
         updateNote={updateNote}
         addNote={addNote}
         removeNote={removeNote}
+        pickCatalogNote={pickCatalogNote}
         setContact={setContact}
         contact={contact}
       />

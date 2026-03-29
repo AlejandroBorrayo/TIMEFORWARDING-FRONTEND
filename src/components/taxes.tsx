@@ -8,7 +8,7 @@ import {
   Loader2,
   PlusIcon,
 } from "lucide-react";
-import { useEffect, useState, useCallback, useRef, use } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { FindAll as FindTax, Create as CreateTax } from "@/services/tax";
 import { taxCollectionInterface } from "@/type/tax.interface";
 import TaxModal from "./taxModal";
@@ -19,6 +19,10 @@ interface Props {
   error?: boolean;
   mode: string;
   setRefreshTax: (val: boolean) => void;
+  /** Fila del concepto que abre "Agregar impuesto" (asignar al guardar). */
+  onBeforeOpenNewTax?: () => void;
+  onTaxCreated?: (tax: taxCollectionInterface) => void;
+  onTaxModalDismiss?: () => void;
 }
 
 export default function TaxSelect({
@@ -27,6 +31,9 @@ export default function TaxSelect({
   error,
   mode,
   setRefreshTax,
+  onBeforeOpenNewTax,
+  onTaxCreated,
+  onTaxModalDismiss,
 }: Props) {
   /* ---------------- PREVIEW MODE ---------------- */
   if (mode === "preview") {
@@ -117,11 +124,14 @@ export default function TaxSelect({
     }
   };
 
+  const rootValue =
+    value?.name === "sin impuesto" ? "no-tax" : value?._id;
+
   /* ---------------- RENDER ---------------- */
   return (
     <div style={{ display: "flex", justifyContent: "center" }}>
       <Select.Root
-        value={value?._id}
+        value={rootValue}
         onValueChange={onChange}
         open={open}
         onOpenChange={setOpen}
@@ -222,12 +232,13 @@ export default function TaxSelect({
                 <div
                   onClick={() => {
                     setOpen(false);
+                    onBeforeOpenNewTax?.();
                     setOpenNewNote(true);
                   }}
                   className="flex items-center gap-2 px-4 hover:bg-gray-100 focus:bg-gray-100 py-2 text-sm font-medium cursor-pointer select-none"
                 >
                   <PlusIcon className="w-4 h-4" />
-                  <span>Agregar tax</span>
+                  <span>Agregar impuesto</span>
                 </div>
               </div>
             </div>
@@ -242,13 +253,15 @@ export default function TaxSelect({
         visible={openNewNote}
         onClose={() => {
           setOpenNewNote(false);
+          onTaxModalDismiss?.();
         }}
         onSubmit={async (data) => {
-          await CreateTax(data);
+          const created = await CreateTax(data);
           setPage(1);
           setHasMore(true);
           await fetchData(searchTerm, 1, false);
           setRefreshTax(true);
+          onTaxCreated?.(created);
         }}
       />
     </div>

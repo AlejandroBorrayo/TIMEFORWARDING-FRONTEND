@@ -24,6 +24,20 @@ export const formatDateDMY = (dateStr?: string) => {
   return `${day}/${month}/${year}`;
 };
 
+/** ObjectId de MongoDB en hex (24 caracteres). */
+export const isValidMongoObjectId = (
+  value: string | undefined | null,
+): boolean =>
+  typeof value === "string" && /^[a-f0-9]{24}$/i.test(value.trim());
+
+/** Algunas respuestas del API usan `_id` y otras `id`. */
+export const normalizeSupplierDocumentId = (
+  doc: { _id?: string; id?: string } | null | undefined,
+): string => {
+  const raw = doc?._id ?? doc?.id;
+  return typeof raw === "string" ? raw.trim() : "";
+};
+
 export const STATUS_OPTIONS_SOLOENVIOS = [
   "Guía creada",
   "Excepción",

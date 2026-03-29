@@ -8,5 +8,8 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <LandingPage />;
+  const whatsAppPhoneRaw =
+    process.env.NEXT_TIME_WHATS_APP?.trim() ||
+    process.env.NEXT_PUBLIC_NEXT_TIME_WHATS_APP?.trim();
+  return <LandingPage whatsAppPhoneRaw={whatsAppPhoneRaw} />;
 }

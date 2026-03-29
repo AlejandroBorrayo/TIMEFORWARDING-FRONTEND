@@ -19,11 +19,35 @@ import { NoteCollectionInterface } from "@/type/note.interface";
 import ModalNote from "./noteModal";
 
 interface Props {
-  value?: NoteCollectionInterface;
+  value?: NoteCollectionInterface | string;
   onChange: (val: string, index: number) => void;
   error?: boolean;
   mode: string;
   index?: number;
+  /** Contenedor (p. ej. `w-full`) para que el trigger use todo el ancho y el elipsis funcione. */
+  className?: string;
+}
+
+/** Radix Select exige `value` único por ítem; el texto de la nota puede repetirse en el catálogo. */
+function noteTextFromValue(
+  value: NoteCollectionInterface | string | undefined,
+): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  return value.note ?? "";
+}
+
+function resolveSelectRootValue(
+  value: NoteCollectionInterface | string | undefined,
+  data: NoteCollectionInterface[],
+): string | undefined {
+  const text = noteTextFromValue(value)?.trim();
+  if (!text) return undefined;
+  const match = data.find((x) => (x?.note ?? "").trim() === text);
+  if (match?._id != null && String(match._id).length > 0) {
+    return String(match._id);
+  }
+  return undefined;
 }
 
 export default function NotesSelect({
@@ -32,6 +56,7 @@ export default function NotesSelect({
   error,
   mode,
   index,
+  className,
 }: Props) {
   const [openNewNote, setOpenNewNote] = useState(null);
 
@@ -113,28 +138,42 @@ export default function NotesSelect({
 
   /* ---------------- RENDER ---------------- */
   if (mode === "preview") {
-    return <span className="font-semibold">{value?.note || "—"}</span>;
+    const t = noteTextFromValue(value);
+    return <span className="font-semibold">{t.trim() ? t : "—"}</span>;
   }
 
+  const displayNote = noteTextFromValue(value);
+  const rootValue = resolveSelectRootValue(value, data);
+
   return (
-    <div>
+    <div className={className ?? ""}>
       <Select.Root
-        value={value?.note}
-        onValueChange={(val) => onChange(val, index)}
+        value={rootValue}
+        onValueChange={(selectedId) => {
+          const fallback = /^__note_fallback_(\d+)__$/.exec(selectedId);
+          if (fallback) {
+            const row = data[Number(fallback[1])];
+            onChange(row?.note ?? "", index ?? 0);
+            return;
+          }
+          const item = data.find((x) => String(x?._id) === String(selectedId));
+          onChange(item?.note ?? "", index ?? 0);
+        }}
         open={open}
         onOpenChange={setOpen}
       >
         <Select.Trigger
-          className={`px-4 py-2 border border-gray-300 rounded-xl flex justify-between items-center bg-white
+          className={`w-full min-w-0 max-w-full px-4 py-2 border border-gray-300 rounded-xl flex justify-between items-center gap-2 bg-white
             ${error ? "border-red-500" : ""}
             focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand`}
         >
-          <Select.Value placeholder="Selecciona una nota">
-            <span className="truncate text-ellipsis overflow-hidden whitespace-nowrap flex-1 text-left">
-              {value?.note ?? "Selecciona una nota"}
-            </span>
+          <Select.Value
+            placeholder="Selecciona una nota"
+            className="block min-w-0 flex-1 truncate text-left text-sm"
+          >
+            {displayNote.trim() ? displayNote : "Selecciona una nota"}
           </Select.Value>
-          <Select.Icon className="flex-shrink-0 ml-2">
+          <Select.Icon className="shrink-0">
             <ChevronDownIcon className="w-4 h-4 text-gray-600" />
           </Select.Icon>
         </Select.Trigger>
@@ -168,8 +207,12 @@ export default function NotesSelect({
                 {data.length > 0
                   ? data.map((item, index) => (
                       <Select.Item
-                        key={item?._id || `${item?.note}-${index}`}
-                        value={item?.note}
+                        key={item?._id || `note-row-${index}`}
+                        value={
+                          item?._id != null && String(item._id).trim() !== ""
+                            ? String(item._id)
+                            : `__note_fallback_${index}__`
+                        }
                         className="relative flex items-start px-8 py-2 text-sm rounded-md cursor-pointer select-none 
                         hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                       >

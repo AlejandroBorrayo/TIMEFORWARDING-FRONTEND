@@ -902,28 +902,9 @@ export default function FoliosPage() {
                 Confirmar nuevo folio
               </h3>
               <p className="text-sm text-gray-600">
-                Se creará un folio <strong>sin costo de servicio</strong>. Por
-                defecto el identificador sigue el formato{" "}
-                <strong>
-                  {FOLIO_SLUG_PREFIX}
-                  {String(1).padStart(FOLIO_SLUG_PAD, "0")}
-                </strong>
-                ,{" "}
-                <strong>
-                  {FOLIO_SLUG_PREFIX}
-                  {String(2).padStart(FOLIO_SLUG_PAD, "0")}
-                </strong>
-                , …: recorremos <strong>todos</strong> los folios de la empresa
-                (paginando en lotes de {SUGGEST_FOLIO_PER_PAGE}), tomamos el mayor
-                número entre los que empiezan por{" "}
-                <code className="text-xs bg-gray-100 px-1 rounded">{FOLIO_SLUG_PREFIX}</code>{" "}
-                y sumamos 1. Si no hay
-                ninguno, se sugiere{" "}
-                <strong>
-                  {FOLIO_SLUG_PREFIX}
-                  {String(1).padStart(FOLIO_SLUG_PAD, "0")}
-                </strong>
-                . Necesitas <strong>empresa activa</strong> en el menú superior.
+                Se creará un folio <strong>sin costo de servicio</strong>. El
+                siguiente identificador se propone por defecto; puedes
+                modificarlo manualmente en el campo de abajo.
               </p>
               {!userid && (
                 <p className="text-sm text-amber-700">

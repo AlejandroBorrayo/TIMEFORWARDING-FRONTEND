@@ -7,7 +7,7 @@ import { Find as FindCustomer } from "../services/customer";
 import { FindAll as FindAllNotes } from "../services/note";
 import { Create as CreateCustomer } from "../services/customer";
 import { Update as UpdateCustomer } from "../services/customer";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ConvertCurrency } from "../services/currency";
 import ModalCreateSupplier from "./createSupplierModal";
 import { SupplierCollectionInterface } from "@/type/supplier.interface";
@@ -15,11 +15,20 @@ import CustomerSelect from "./customers";
 import ContactSelect from "./contacts";
 import NotesSelect from "./notes";
 import CurrencySelect from "./currencySelect";
-import { formatDateDMY } from "@/app/utils";
+import {
+  formatDateDMY,
+  isValidMongoObjectId,
+  normalizeSupplierDocumentId,
+} from "@/app/utils";
 import ModalCrearCliente from "./createCustomerModal";
 import ModalCrearContacto from "./createContactModal";
 import { FindAll as FindAllTax } from "../services/tax";
 import TaxSelect from "./taxes";
+
+type QuoteEditorProps = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- props legacy del editor
+  [key: string]: any;
+};
 
 export default function QuoteEditor({
   setCurrency,
@@ -35,6 +44,8 @@ export default function QuoteEditor({
   updateNote,
   addNote,
   removeNote,
+  /** Añade texto del catálogo: llena el primer hueco vacío o agrega una nota nueva. */
+  pickCatalogNote,
   type,
   currentFolio,
   currentCost,
@@ -43,11 +54,17 @@ export default function QuoteEditor({
   customer,
   contact,
   setContact,
-}) {
+}: QuoteEditorProps) {
   const [openContactModal, setOpenContactModal] = useState(false);
   const [openNewCustomer, setOpenNewCustomer] = useState(false);
   const [refreshCustomers, setRefreshCustomers] = useState(true);
   const [openNewSupplier, setOpenNewSupplier] = useState(false);
+  /** Índice de fila que abrió "Agregar proveedor" (asignar _id al guardar). */
+  const [supplierModalRowIndex, setSupplierModalRowIndex] = useState<
+    number | null
+  >(null);
+  /** Fila que abrió "Agregar impuesto" (ref: evita cierre obsoleto tras await Create). */
+  const taxModalRowIndexRef = useRef<number | null>(null);
   const [refreshSupplier, setRefreshSupplier] = useState(true);
   const [refreshTax, setRefreshTax] = useState(false);
   const [showTotalUSD, setShowTotalUSD] = useState(false);
@@ -61,6 +78,17 @@ export default function QuoteEditor({
   const [currentNotes, setCurrentNotes] = useState<
     { note: string; _id?: string }[]
   >([]);
+
+  const noteEntryText = (n: unknown) =>
+    typeof n === "string" ? n : ((n as { note?: string })?.note ?? "");
+
+  const noteEntryKey = (n: unknown, i: number) => {
+    const id = (n as { _id?: string })?._id;
+    return id ?? `note-${i}`;
+  };
+
+  /** Reinicia el select de notas tras elegir (no muestra la selección en el trigger). */
+  const [catalogNotesPickKey, setCatalogNotesPickKey] = useState(0);
 
   useEffect(() => {
     setDate(new Date().toLocaleDateString());
@@ -107,7 +135,10 @@ export default function QuoteEditor({
       const taxAmount = Number(i?.tax?.amount || 0) / 100;
 
       if (showTotalUSD) {
-        impMap.set(i.tax.name, currentAmount + i.quantity * i.usd_amount * taxAmount);
+        impMap.set(
+          i.tax.name,
+          currentAmount + i.quantity * i.usd_amount * taxAmount,
+        );
         return;
       }
       impMap.set(i.tax.name, currentAmount + i.quantity * i.amount * taxAmount);
@@ -136,7 +167,7 @@ export default function QuoteEditor({
           const impuesto =
             i.quantity * i.usd_amount * (Number(i?.tax?.amount || 0) / 100);
           return a + i.quantity * i.usd_amount + impuesto;
-        }, 0)
+        }, 0),
       );
       return;
     }
@@ -149,18 +180,27 @@ export default function QuoteEditor({
           const impuesto =
             i.quantity * i.amount * (Number(i?.tax?.amount || 0) / 100);
           return a + i.quantity * i.amount + impuesto;
-        }, 0)
+        }, 0),
       );
       return;
     }
   }, [items, showTotalUSD, impuestos, setCurrency]);
 
   const handleCreateSupplier = async (
-    supplier: SupplierCollectionInterface
+    supplier: SupplierCollectionInterface,
   ) => {
     try {
-      await CreateSupplier(supplier);
+      const created = await CreateSupplier(supplier);
       setRefreshSupplier(true);
+      if (supplierModalRowIndex !== null) {
+        const id = normalizeSupplierDocumentId(created);
+        if (isValidMongoObjectId(id)) {
+          updateItem(supplierModalRowIndex, "supplier", {
+            name: created?.name ?? supplier.name,
+            _id: id,
+          });
+        }
+      }
     } catch (error) {
       console.error("Error creating customer:", error);
     }
@@ -173,13 +213,16 @@ export default function QuoteEditor({
 
   const handleChangeSupplier = async (data: string, i: number) => {
     const find = await FindSupplier(data);
-    updateItem(i, "supplier.name", find?.name);
-    updateItem(i, "supplier._id", find?._id);
+    const id = normalizeSupplierDocumentId(find);
+    updateItem(i, "supplier", {
+      name: find?.name ?? "",
+      _id: id,
+    });
   };
 
   const onChangeContact = async (contactEmail: string) => {
     const contactFind = customer.contacts.find(
-      (cont) => cont.email === contactEmail
+      (cont) => cont.email === contactEmail,
     );
     setContact(contactFind);
   };
@@ -260,10 +303,7 @@ export default function QuoteEditor({
         />
 
         <div className="text-left">
-          <h1
-            style={{ marginBottom: "12px" }}
-            className="text-xl text-brand"
-          >
+          <h1 style={{ marginBottom: "12px" }} className="text-xl text-brand">
             Time Forwarding
           </h1>
           <p className="text-gray-700 mb-1 last:mb-0">
@@ -347,7 +387,7 @@ export default function QuoteEditor({
                       setValidUntil(
                         e.target.value
                           ? new Date(e.target.value + "T00:00:00")
-                          : null
+                          : null,
                       )
                     }
                     className=" px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
@@ -426,6 +466,9 @@ export default function QuoteEditor({
                       setRefreshSupplier={setRefreshSupplier}
                       refreshSupplier={refreshSupplier}
                       setOpenNewSupplier={setOpenNewSupplier}
+                      onBeforeOpenNewSupplier={() =>
+                        setSupplierModalRowIndex(i)
+                      }
                       onChange={(v) => handleChangeSupplier(v, i)}
                       value={it?.supplier}
                       mode={mode}
@@ -471,17 +514,39 @@ export default function QuoteEditor({
                     <TaxSelect
                       setRefreshTax={setRefreshTax}
                       value={it?.tax}
+                      onBeforeOpenNewTax={() => {
+                        taxModalRowIndexRef.current = i;
+                      }}
+                      onTaxModalDismiss={() => {
+                        taxModalRowIndexRef.current = null;
+                      }}
+                      onTaxCreated={(created) => {
+                        const row = taxModalRowIndexRef.current;
+                        if (row === null) return;
+                        const id = normalizeSupplierDocumentId(created);
+                        updateItem(row, "tax", {
+                          name: created.name,
+                          amount: created.amount,
+                          ...(isValidMongoObjectId(id) ? { _id: id } : {}),
+                        });
+                      }}
                       onChange={(value) => {
-                        const findImpuestos = impuestos.find(
-                          (imp) => imp?._id === value
-                        );
-                        if (value === "none") {
-                          updateItem(i, "tax.name", "sin impuesto");
-                          updateItem(i, "tax.amount", 0);
+                        if (value === "no-tax" || value === "none") {
+                          updateItem(i, "tax", {
+                            name: "sin impuesto",
+                            amount: 0,
+                          });
                           return;
                         }
-                        updateItem(i, "tax.name", findImpuestos?.name);
-                        updateItem(i, "tax.amount", findImpuestos?.amount);
+                        const findImpuestos = impuestos.find(
+                          (imp) => imp?._id === value,
+                        );
+                        if (!findImpuestos) return;
+                        updateItem(i, "tax", {
+                          name: findImpuestos.name,
+                          amount: findImpuestos.amount,
+                          _id: findImpuestos._id,
+                        });
                       }}
                       mode={"edit"}
                     ></TaxSelect>
@@ -644,52 +709,127 @@ export default function QuoteEditor({
 
       {type === "quote" &&
         (mode === "edit" || (mode !== "edit" && notes?.length > 0)) && (
-          <div className="mt-10 border-t border-gray-300 py-8 my-8">
+          <div className="mt-10 w-full min-w-0 max-w-full border-t border-gray-300 py-8 my-8">
             {(mode === "edit" || notes?.length > 0) && (
-              <h3 className="font-semibold mb-2">Notas</h3>
+              <h3 className="font-semibold mb-4">Notas</h3>
             )}
 
-            {notes?.length > 0 &&
-              notes.map((n, i) => (
-                <div key={i} className="mb-3">
-                  {mode === "edit" ? (
-                    <NotesSelect
-                      value={n}
-                      onChange={updateNote}
-                      mode={"edit"}
-                      index={i}
-                    ></NotesSelect>
-                  ) : (
-                    <p className="whitespace-pre-line">
-                      {typeof n === "string" ? n : (n as { note?: string })?.note ?? ""}
-                    </p>
-                  )}
-
-                  {mode === "edit" && (
-                    <button
-                      onClick={() => removeNote(i)}
-                      className="text-red-500 text-sm mt-1 cursor-pointer"
-                    >
-                      Eliminar
-                    </button>
-                  )}
+            {mode === "edit" && pickCatalogNote && addNote && removeNote ? (
+              <div className="w-full max-w-none space-y-8">
+                <p className="text-xs text-gray-500 max-w-3xl">
+                  Cada elección del catálogo se añade abajo; el select vuelve a
+                  “Selecciona una nota”. <strong>Agregar nota</strong> crea un
+                  espacio vacío para completar con la siguiente elección.
+                </p>
+                <div className="w-full min-w-0 max-w-3xl">
+                  <NotesSelect
+                    key={catalogNotesPickKey}
+                    className="w-full min-w-0"
+                    value={undefined}
+                    onChange={(val) => {
+                      if (!val?.trim()) return;
+                      pickCatalogNote(val);
+                      setCatalogNotesPickKey((k) => k + 1);
+                    }}
+                    mode={"edit"}
+                    index={0}
+                  />
                 </div>
-              ))}
 
-            {mode === "edit" && (
-              <button
-                onClick={addNote}
-                className="text-green-600 mt-2 cursor-pointer"
-              >
-                + Agregar nota
-              </button>
+                <div className="w-full space-y-10 pt-2">
+                  {(notes?.length ? notes : []).map((n, i) => (
+                    <div
+                      key={noteEntryKey(n, i)}
+                      className="w-full border-b border-gray-100 pb-10 last:border-0 last:pb-0"
+                    >
+                      <div
+                        className="w-full text-sm leading-relaxed text-gray-800 whitespace-pre-wrap break-words"
+                        aria-live="polite"
+                      >
+                        {noteEntryText(n).trim() ? (
+                          noteEntryText(n)
+                        ) : (
+                          <span className="text-gray-400">
+                            Pendiente: elige una nota del catálogo para rellenar
+                            este espacio.
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeNote(i)}
+                        className="mt-3 text-sm font-medium text-red-600 hover:underline"
+                      >
+                        Eliminar nota
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : mode === "edit" &&
+              updateNote &&
+              addNote &&
+              removeNote &&
+              !pickCatalogNote ? (
+              <div className="w-full space-y-10">
+                {(notes?.length ? notes : []).map((n, i) => (
+                  <div
+                    key={noteEntryKey(n, i)}
+                    className="w-full border-b border-gray-100 pb-10 last:border-b-0 last:pb-0"
+                  >
+                    <div className="w-full min-w-0">
+                      <NotesSelect
+                        className="w-full min-w-0"
+                        value={n}
+                        onChange={updateNote}
+                        mode={"edit"}
+                        index={i}
+                      />
+                    </div>
+                    <div className="mt-4 w-full text-sm leading-relaxed text-gray-800 whitespace-pre-wrap break-words">
+                      {noteEntryText(n).trim() ? (
+                        noteEntryText(n)
+                      ) : (
+                        <span className="text-gray-400">
+                          Elige una nota en el catálogo.
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeNote(i)}
+                      className="mt-3 text-sm font-medium text-red-600 hover:underline"
+                    >
+                      Eliminar nota
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {mode !== "edit" && notes?.length > 0 && (
+              <div className="w-full space-y-8">
+                {notes
+                  .filter((n) => noteEntryText(n).trim())
+                  .map((n, i) => (
+                    <div
+                      key={noteEntryKey(n, i)}
+                      className="w-full text-sm leading-relaxed text-gray-800 whitespace-pre-wrap break-words border-b border-gray-100 pb-8 last:border-0 last:pb-0"
+                    >
+                      {noteEntryText(n)}
+                    </div>
+                  ))}
+              </div>
             )}
           </div>
         )}
 
       <ModalCreateSupplier
         visible={openNewSupplier}
-        onClose={() => setOpenNewSupplier(false)}
+        onClose={() => {
+          setOpenNewSupplier(false);
+          setSupplierModalRowIndex(null);
+        }}
         onCreate={handleCreateSupplier}
       />
       <ModalCrearCliente

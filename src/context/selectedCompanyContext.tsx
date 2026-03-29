@@ -18,7 +18,7 @@ import {
 import CompanySwitchOverlay from "@/components/companySwitchOverlay";
 
 /** Tiempo mínimo del overlay al cambiar de empresa (experiencia de usuario). */
-const COMPANY_SWITCH_OVERLAY_MS = 7000;
+const COMPANY_SWITCH_OVERLAY_MS = 3000;
 
 type SelectedCompanyContextValue = {
   companies: CompanyInterface[];
@@ -158,7 +158,7 @@ export function SelectedCompanyProvider({
         setStoredCompanyId(next);
         setCompanyIdState(next);
         setCompanySwitchOverlay(null);
-        window.location.reload();
+        window.location.assign("/cuenta/folios");
       }, COMPANY_SWITCH_OVERLAY_MS);
     },
     [companies],

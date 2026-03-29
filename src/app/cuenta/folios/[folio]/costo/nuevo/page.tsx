@@ -7,6 +7,7 @@ import { Create as CreateFolio } from "../../../../../../services/folio";
 import { useAuth } from "@/components/authProvider";
 import { FolioDtoInterface } from "@/type/folio.dto";
 import { Toast } from "@/components/toast";
+import { isValidMongoObjectId } from "@/app/utils";
 
 export default function QuoteCreatePage() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function QuoteCreatePage() {
       usd_amount: number;
       currency: string;
       quantity: number;
-      tax: { name: string; amount: number };
+      tax: { name: string; amount: number; _id?: string };
       supplier: { name: string; _id: string };
     }[]
   >([
@@ -87,6 +88,18 @@ export default function QuoteCreatePage() {
   const handleCreateQuote = async () => {
     try {
       setLoadingServiceCost(true);
+      const missingSupplier = items?.some(
+        (item) => !isValidMongoObjectId(item?.supplier?._id),
+      );
+      if (missingSupplier) {
+        setToast({
+          visible: true,
+          message:
+            "Cada concepto debe tener un proveedor válido. Selecciona uno en todas las filas o vuelve a elegirlo si acabas de crear uno.",
+          type: "error",
+        });
+        return;
+      }
       const hasItems = (items?.length || 0) > 0;
       const hasUSDItem = items?.some((item) => item?.currency === "USD");
       const allItemsAreMXN = hasItems
