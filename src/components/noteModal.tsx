@@ -86,7 +86,7 @@ export default function ModalNote({
               ×
             </button>
 
-            <h3 className="text-xl font-semibold text-center text-[#02101d]">
+            <h3 className="text-xl font-semibold text-center text-brand">
               {initialData ? "Editar nota" : "Nueva nota"}
             </h3>
 
@@ -116,7 +116,7 @@ export default function ModalNote({
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className={`px-4 py-2 rounded-lg bg-[#02101d] text-white hover:bg-[#0e1b32] ${
+                className={`btn btn-sm btn-primary ${
                   loading ? "opacity-70 cursor-not-allowed" : ""
                 } cursor-pointer`}
               >

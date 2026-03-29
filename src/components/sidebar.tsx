@@ -122,14 +122,14 @@ export default function Sidebar({ session, isOpen, onClose }: SidebarProps) {
           ${isOpen ? "max-[1024px]:translate-x-0 z-50" : ""}
         `}
       >
-        <div className="p-6 flex justify-center items-center">
+        <div className="px-4 py-8 flex justify-center items-center sm:px-5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logoSrc}
             alt={logoAlt}
-            width={176}
-            height={176}
-            className="max-h-44 w-auto max-w-full rounded-xl object-contain"
+            width={240}
+            height={240}
+            className="max-h-56 w-auto max-w-[min(100%,13rem)] rounded-xl object-contain sm:max-h-64 sm:max-w-[min(100%,15rem)]"
           />
         </div>
 

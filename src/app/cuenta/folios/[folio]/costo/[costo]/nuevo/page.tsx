@@ -182,10 +182,10 @@ export default function QuoteCreatePage() {
         <button
           onClick={handleCreateServiceCost}
           disabled={loadingQuote}
-          className={`cursor-pointer px-6 py-3 rounded-xl text-white font-medium shadow transition ${
+          className={`btn btn-lg ${
             loadingQuote
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-[#02101d] hover:bg-[#032037]"
+              ? "cursor-not-allowed bg-gray-400 text-white shadow-none hover:bg-gray-400"
+              : "btn-primary"
           }`}
         >
           {loadingQuote ? (

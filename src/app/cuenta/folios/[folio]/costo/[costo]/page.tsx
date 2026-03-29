@@ -84,12 +84,11 @@ export default function QuoteCreatePage() {
         <button
           onClick={() => window.open(pdf, "_blank")}
           disabled={!pdf || loadingQuote}
-          className={`px-6 py-3 rounded-xl font-medium transition border cursor-pointer
-      ${
-        !pdf || loadingQuote
-          ? "border-gray-300 text-gray-400 cursor-not-allowed"
-          : "border-[#02101d] text-[#02101d] hover:bg-[#02101d]/5"
-      }`}
+          className={`btn btn-lg font-medium ${
+            !pdf || loadingQuote
+              ? "cursor-not-allowed border border-gray-300 bg-white text-gray-400 shadow-none"
+              : "btn-soft-brand"
+          }`}
         >
           Descargar PDF
         </button>
@@ -97,12 +96,11 @@ export default function QuoteCreatePage() {
         {/* Duplicar costo */}
         <Link
           href={`/cuenta/folios/${currentFolio}/costo/${currentCost}/nuevo`}
-          className={`px-6 py-3 rounded-xl font-medium transition border 
-      ${
-        loadingQuote
-          ? "pointer-events-none border-gray-300 text-gray-400"
-          : "border-[#02101d] text-[#02101d] hover:bg-[#02101d]/5"
-      }`}
+          className={`btn btn-lg ${
+            loadingQuote
+              ? "pointer-events-none border border-gray-300 bg-white text-gray-400 shadow-none"
+              : "btn-soft-brand font-medium"
+          }`}
         >
           Duplicar costo
         </Link>
@@ -111,12 +109,11 @@ export default function QuoteCreatePage() {
         {/* Crear cotización */}
         <Link
           href={`/cuenta/folios/${currentFolio}/costo/${currentCost}/cotizacion/nuevo`}
-          className={`px-6 py-3 rounded-xl text-white font-semibold shadow transition
-      ${
-        loadingQuote
-          ? "pointer-events-none bg-gray-400"
-          : "bg-[#02101d] hover:bg-[#032037]"
-      }`}
+          className={`btn btn-lg ${
+            loadingQuote
+              ? "pointer-events-none bg-gray-400 text-white shadow-none hover:bg-gray-400"
+              : "btn-primary"
+          }`}
         >
           Crear cotización
         </Link>

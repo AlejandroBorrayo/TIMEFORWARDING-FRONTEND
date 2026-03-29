@@ -78,7 +78,7 @@ export default function NotesPage() {
             setEditingNote(null);
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-[#02101d] text-white rounded-xl cursor-pointer"
+          className="btn btn-sm btn-primary"
         >
           Nueva nota
         </button>
@@ -120,7 +120,7 @@ export default function NotesPage() {
                             setEditingNote({ note: note.note, _id: note._id });
                             setShowModal(true);
                           }}
-                          className="px-3 py-1 text-sm bg-[#02101d] text-white rounded-xl cursor-pointer"
+                          className="btn btn-xs btn-primary"
                         >
                           Editar
                         </button> */}
@@ -172,7 +172,7 @@ export default function NotesPage() {
                       setEditingNote({ note: note.note, _id: note._id });
                       setShowModal(true);
                     }}
-                    className="px-3 py-1 text-sm bg-[#02101d] text-white rounded-xl"
+                    className="btn btn-xs btn-primary"
                   >
                     Editar
                   </button>

@@ -1,7 +1,12 @@
 @import "tailwindcss";
+
+/* Color primario corporativo Time Forwarding */
 :root {
   --background: #ffffff;
   --foreground: #02101d;
+  --brand: #02101d;
+  --brand-hover: #0e1b32;
+  --brand-muted: #1a2b4c;
 
   /* Fuentes importadas desde Next Fonts */
   --font-sans: var(--font-geist-sans);
@@ -11,6 +16,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-muted: var(--brand-muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -52,8 +60,8 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: #2b4b7e;
-  box-shadow: 0 0 0 1px #2b4b7e;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 1px var(--brand);
 }
 
 
@@ -79,6 +87,55 @@ select:focus {
 }
 
 
-.rdp-root{
-  --rdp-accent-color:#02101d !important
+.rdp-root {
+  --rdp-accent-color: var(--brand) !important;
+}
+
+/* Botones alineados al estilo de la landing (rounded-xl, sombra suave, peso semibold) */
+@layer components {
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 font-semibold transition;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2;
+  }
+
+  .btn:disabled {
+    @apply pointer-events-none opacity-50;
+  }
+
+  .btn-lg {
+    @apply rounded-xl px-7 py-3.5 text-base shadow-lg shadow-black/12;
+  }
+
+  .btn-md {
+    @apply rounded-xl px-6 py-2.5 text-sm shadow-md shadow-black/10;
+  }
+
+  .btn-sm {
+    @apply rounded-xl px-4 py-2 text-sm shadow-md shadow-black/10;
+  }
+
+  .btn-xs {
+    @apply rounded-xl px-3 py-1.5 text-xs shadow-sm shadow-black/8;
+  }
+
+  .btn-primary {
+    @apply bg-brand text-white hover:bg-brand-hover;
+  }
+
+  .btn-secondary {
+    @apply border border-slate-300 bg-white text-slate-800 shadow-md shadow-slate-900/8;
+    @apply hover:border-slate-400 hover:bg-slate-50;
+  }
+
+  /** Borde brand, relleno al hover (estilo enlaces secundarios de cuenta) */
+  .btn-outline-primary {
+    @apply border border-brand bg-transparent text-brand shadow-sm shadow-black/5;
+    @apply hover:bg-brand hover:text-white;
+  }
+
+  /** Solo borde brand + fondo muy suave al hover */
+  .btn-soft-brand {
+    @apply border border-brand bg-white font-medium text-brand shadow-sm shadow-black/5;
+    @apply hover:bg-brand/5;
+  }
 }

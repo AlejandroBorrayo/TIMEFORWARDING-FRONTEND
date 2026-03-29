@@ -112,7 +112,7 @@ export default function EmpresasPage() {
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 max-w-none">
         <div>
-          <h1 className="text-2xl font-semibold text-[#02101d]">Empresas</h1>
+          <h1 className="text-2xl font-semibold text-brand">Empresas</h1>
           <p className="text-gray-600 text-sm mt-1">
             Haz clic en una tarjeta para activar esa empresa. El lápiz arriba a
             la derecha abre la edición.
@@ -121,7 +121,7 @@ export default function EmpresasPage() {
         <button
           type="button"
           onClick={openCreate}
-          className="shrink-0 px-4 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] cursor-pointer"
+          className="shrink-0 btn btn-sm btn-primary"
         >
           Nueva empresa
         </button>
@@ -133,7 +133,7 @@ export default function EmpresasPage() {
           placeholder="Buscar empresa…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:max-w-md px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-1 focus:ring-[#02101d] focus:outline-none"
+          className="w-full sm:max-w-md px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-1 focus:ring-brand focus:outline-none"
         />
       </div>
 
@@ -163,7 +163,7 @@ export default function EmpresasPage() {
                     <button
                       type="button"
                       onClick={() => openEdit(c)}
-                      className="absolute top-4 right-4 z-20 rounded-xl p-2.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#02101d] cursor-pointer"
+                      className="absolute top-4 right-4 z-20 rounded-xl p-2.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand cursor-pointer"
                       aria-label={`Editar ${c.name}`}
                     >
                       <PencilSquareIcon className="h-6 w-6" aria-hidden />
@@ -184,7 +184,7 @@ export default function EmpresasPage() {
                           setCompanyId(c._id);
                         }
                       }}
-                      className={`flex w-full flex-col rounded-3xl p-6 pt-14 md:p-8 md:pt-16 outline-none focus-visible:ring-2 focus-visible:ring-[#02101d] focus-visible:ring-offset-2 ${
+                      className={`flex w-full flex-col rounded-3xl p-6 pt-14 md:p-8 md:pt-16 outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
                         active ? "cursor-default" : "cursor-pointer"
                       }`}
                     >
@@ -208,7 +208,7 @@ export default function EmpresasPage() {
                             />
                           )}
                         </div>
-                        <h2 className="mt-6 font-semibold text-xl md:text-2xl text-[#02101d] leading-tight break-words px-1">
+                        <h2 className="mt-6 font-semibold text-xl md:text-2xl text-brand leading-tight break-words px-1">
                           {c.name}
                         </h2>
                         {active && (

@@ -66,7 +66,7 @@ export default function ResetPasswordPage() {
     >
       {/* Lado izquierdo con logo */}
       <div
-        className="w-full md:w-1/4 bg-[#02101d] flex justify-center items-center py-8 cursor-pointer"
+        className="w-full md:w-1/4 bg-brand flex justify-center items-center py-8 cursor-pointer"
         onClick={() => router.push("/auth/iniciar-sesion")}
       >
         <Image
@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
                 onChange={handleChange}
                 placeholder="••••••••"
                 required
-                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]"
+                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
               />
             </div>
 
@@ -121,7 +121,7 @@ export default function ResetPasswordPage() {
                 onChange={handleChange}
                 placeholder="••••••••"
                 required
-                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]"
+                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
               />
             </div>
 
@@ -137,7 +137,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-4 px-6 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] transition-all duration-300 font-medium flex justify-center items-center gap-2 cursor-pointer"
+              className="mt-4 btn btn-md btn-primary w-full max-w-md"
             >
               {loading ? (
                 <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-5 h-5"></span>
@@ -152,7 +152,7 @@ export default function ResetPasswordPage() {
             <button
               type="button"
               onClick={() => router.push("/auth/iniciar-sesion")}
-              className="text-[#02101d] text-sm hover:underline font-medium transition-all"
+              className="text-brand text-sm hover:underline font-medium transition-all"
             >
               Volver al inicio de sesión
             </button>

@@ -175,7 +175,7 @@ export default function RecoleccionesPage() {
           {/* Botón nueva recolección */}
           <button
             onClick={() => setDrawerOpen(true)}
-            className="px-4 cursor-pointer py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] transition"
+            className="btn btn-sm btn-primary"
           >
             Generar nueva recolección
           </button>
@@ -221,7 +221,7 @@ export default function RecoleccionesPage() {
                   `/cuenta/envios/${r?.shipping_id}?origen=recolecciones`
                 )
               }
-              className="w-full px-4 py-2 bg-[#02101d] text-white rounded-xl transition transform  hover:bg-[#0c1629] cursor:pointer"
+              className="w-full btn btn-sm btn-primary"
             >
               Ver detalles
             </button>
@@ -303,7 +303,7 @@ export default function RecoleccionesPage() {
                           `/cuenta/envios/${r?.shipping_id?._id}?origen=recolecciones`
                         )
                       }
-                      className="px-3 py-1 bg-[#02101d] text-white rounded-xl transition transform  hover:bg-[#0c1629] cursor-pointer"
+                      className="btn btn-xs btn-primary"
                     >
                       Ver guía
                     </button>
@@ -337,7 +337,7 @@ export default function RecoleccionesPage() {
             className={`px-3 py-1 border rounded-xl ${
               pagination.page === 1
                 ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                : "text-[#02101d] border-gray-300 hover:bg-gray-100 cursor-pointer"
+                : "text-brand border-gray-300 hover:bg-gray-100 cursor-pointer"
             }`}
           >
             Anterior
@@ -351,7 +351,7 @@ export default function RecoleccionesPage() {
             className={`px-3 py-1 border rounded-xl ${
               pagination.page === pagination.totalpages
                 ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                : "text-[#02101d] border-gray-300 hover:bg-gray-100 cursor-pointer"
+                : "text-brand border-gray-300 hover:bg-gray-100 cursor-pointer"
             }`}
           >
             Siguiente

@@ -83,7 +83,7 @@ export default function AddressBookPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const inputClass =
-    "px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]";
+    "px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand";
 
   // ---------------- Fetch Addresses ----------------
   const fetchAddresses = async (page: number, search: string) => {
@@ -344,11 +344,11 @@ export default function AddressBookPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
           />
           <button
             onClick={() => handleOpenModal(null)}
-            className="px-4 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] cursor-pointer transition-colors"
+            className="btn btn-sm btn-primary"
           >
             Agregar
           </button>
@@ -422,7 +422,7 @@ export default function AddressBookPage() {
                   <td className="px-4 py-3 flex gap-1">
                     <button
                       onClick={() => handleOpenModal(addr)}
-                      className="px-3 py-1 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] cursor-pointer transition-colors"
+                      className="btn btn-xs btn-primary"
                     >
                       Editar
                     </button>
@@ -466,7 +466,7 @@ export default function AddressBookPage() {
           <span className="font-medium">{addr.name}</span>
           <button
             onClick={() => handleOpenModal(addr)}
-            className="px-3 py-1 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] cursor-pointer transition-colors"
+            className="btn btn-xs btn-primary"
           >
             Ver
           </button>
@@ -606,7 +606,7 @@ export default function AddressBookPage() {
         value={recipient.country}
         onValueChange={handleCountryChange}
       >
-        <Select.Trigger className="w-full px-3 py-2 cursor-pointer border border-gray-300 rounded-md flex justify-between items-center bg-white focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]">
+        <Select.Trigger className="w-full px-3 py-2 cursor-pointer border border-gray-300 rounded-md flex justify-between items-center bg-white focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand">
           <Select.Value>
             <span className="flex items-center gap-2">
               {
@@ -654,7 +654,7 @@ export default function AddressBookPage() {
     <button
       type="submit"
       disabled={loadingSave}
-      className="px-6 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] hover:shadow-2xl cursor-pointer transition-all duration-300 font-medium flex items-center justify-center gap-2"
+      className="btn btn-md btn-primary hover:shadow-2xl"
     >
       Guardar
       {loadingSave && (

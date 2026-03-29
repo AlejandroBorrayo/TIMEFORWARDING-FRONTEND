@@ -12,8 +12,8 @@ import {
 import { setStoredCreatorUserId } from "@/lib/withCompanyId";
 
 type AuthContextType = {
-  session: Session;
-  setSession: (session: Session) => void;
+  session: Session | null;
+  setSession: (session: Session | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,7 +22,7 @@ export function AuthProvider({
   session: initialSession,
   children,
 }: {
-  session: Session;
+  session: Session | null;
   children: ReactNode;
 }) {
   const [session, setSession] = useState(initialSession);

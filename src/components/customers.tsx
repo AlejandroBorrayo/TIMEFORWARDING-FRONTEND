@@ -127,7 +127,7 @@ export default function CustomerSelect({
         <Select.Trigger
           className={`px-4 py-2 border border-gray-300 rounded-xl flex justify-between items-center bg-white
             ${error ? "border-red-500" : ""}
-            focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]`}
+            focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand`}
         >
           <Select.Value placeholder="Selecciona una empresa">
             <span className="truncate text-ellipsis overflow-hidden whitespace-nowrap flex-1 text-left">

@@ -117,7 +117,7 @@ export default function FolioSelect({
       <Select.Trigger
         className={`w-full px-4 py-2 border rounded-xl flex justify-between items-center bg-white
             ${error ? "border-red-500" : "border-gray-300"}
-            focus:outline-none focus:ring-1 focus:ring-[#02101d]`}
+            focus:outline-none focus:ring-1 focus:ring-brand`}
       >
         <Select.Value placeholder="Selecciona un folio">
           <span className="truncate flex-1 text-left">
@@ -201,7 +201,7 @@ export default function FolioSelect({
               value={NEW_FOLIO_VALUE}
               className="
                   flex items-center gap-2 px-4 py-3
-                  text-sm font-semibold text-[#02101d]
+                  text-sm font-semibold text-brand
                   cursor-pointer select-none
                   hover:bg-gray-50 focus:bg-gray-50 focus:outline-none
                 "

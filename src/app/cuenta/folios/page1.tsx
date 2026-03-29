@@ -74,7 +74,7 @@ export default function OrdersPage() {
           placeholder="Buscar por folio"
           value={folioSearch}
           onChange={(e) => setFolioSearch(e.target.value)}
-          className="flex-1 min-w-[220px] px-4 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-[#02101d]"
+          className="flex-1 min-w-[220px] px-4 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-brand"
         />
 
         {is_admin && (
@@ -83,13 +83,13 @@ export default function OrdersPage() {
             placeholder="Buscar por creador"
             value={seller_name}
             onChange={(e) => setSeller_name(e.target.value)}
-            className="flex-1 min-w-[220px] px-4 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-[#02101d]"
+            className="flex-1 min-w-[220px] px-4 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-brand"
           />
         )}
 
         <Link
           href="/cuenta/folios/nuevo"
-          className="px-4 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32]"
+          className="btn btn-sm btn-primary"
         >
           Crear folio
         </Link>
@@ -140,7 +140,7 @@ export default function OrdersPage() {
                     {" "}
                     <Link
                       href={`/cuenta/folios/${folio.folio}`}
-                      className="px-3 py-1 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] cursor-pointer transition-colors inline-block text-center"
+                      className="btn btn-xs btn-primary inline-block text-center"
                     >
                       Ver detalle
                     </Link>
@@ -184,7 +184,7 @@ export default function OrdersPage() {
 
                   <Link
                     href={`/cuenta/envios/${folio._id}`}
-                    className="px-3 py-1 text-sm bg-[#02101d] text-white rounded-xl"
+                    className="btn btn-xs btn-primary"
                   >
                     Ver
                   </Link>

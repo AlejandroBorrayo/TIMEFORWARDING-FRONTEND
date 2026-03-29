@@ -34,8 +34,8 @@ export default function CurrencySelect({
       <Select.Trigger
         className="
 px-3 py-2 text-sm border border-gray-300 rounded-md
-focus:outline-none focus:ring-1 focus:ring-[#02101d]
-focus:border-[#02101d]
+focus:outline-none focus:ring-1 focus:ring-brand
+focus:border-brand
 flex justify-between items-center bg-white text-gray-700
 min-w-[100px]
 "

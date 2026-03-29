@@ -82,7 +82,7 @@ export default function ModalTaxSupplier({
               ×
             </button>
 
-            <h3 className="text-xl font-semibold text-center text-[#02101d]">
+            <h3 className="text-xl font-semibold text-center text-brand">
               Nuevo IMpuesto
             </h3>
 
@@ -138,7 +138,7 @@ export default function ModalTaxSupplier({
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className={`px-4 py-2 rounded-lg bg-[#02101d] text-white hover:bg-[#0e1b32] flex items-center gap-2 ${
+                className={`btn btn-sm btn-primary ${
                   loading ? "opacity-70 cursor-not-allowed" : ""
                 }`}
               >

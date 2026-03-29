@@ -22,6 +22,7 @@ import { Toast } from "@/components/toast";
 import { FolioCollectionInterface } from "@/type/folio.interface";
 import { PageOptionsDto } from "@/type/general";
 import { formatDateDMY } from "@/app/utils";
+import { BRAND_PRIMARY } from "@/lib/brand";
 
 const PAGE_SIZE = 10;
 
@@ -393,26 +394,26 @@ export default function FoliosDashboardPage() {
             placeholder="Folio"
             value={folioFilter}
             onChange={(e) => setFolioFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-[#02101d]"
+            className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-brand"
           />
           <input
             type="text"
             placeholder="Vendedor"
             value={sellerNameFilter}
             onChange={(e) => setSellerNameFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-[#02101d]"
+            className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-brand"
           />
           <input
             type="date"
             value={startDateFilter}
             onChange={(e) => setStartDateFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-[#02101d]"
+            className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-brand"
           />
           <input
             type="date"
             value={endDateFilter}
             onChange={(e) => setEndDateFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-[#02101d]"
+            className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-1 focus:ring-brand"
           />
         </div>
 
@@ -421,7 +422,7 @@ export default function FoliosDashboardPage() {
             <button
               onClick={handleDownloadReport}
               disabled={reportLoading}
-              className="px-3 py-1 rounded-xl bg-[#02101d] text-white hover:bg-[#0e1b32] text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-xs btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {reportLoading ? "Solicitando reporte..." : "Descargar reporte"}
             </button>
@@ -567,7 +568,7 @@ export default function FoliosDashboardPage() {
                       />
                       <Bar
                         dataKey="value"
-                        fill="#02101d"
+                        fill={BRAND_PRIMARY}
                         radius={[6, 6, 0, 0]}
                       />
                     </BarChart>
@@ -597,7 +598,7 @@ export default function FoliosDashboardPage() {
                       />
                       <Bar
                         dataKey="value"
-                        fill="#02101d"
+                        fill={BRAND_PRIMARY}
                         radius={[6, 6, 0, 0]}
                       />
                     </BarChart>

@@ -18,7 +18,7 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
             {item.href ? (
               <Link
                 href={item.href}
-                className="hover:text-[#02101d] hover:underline transition"
+                className="hover:text-brand hover:underline transition"
               >
                 {item.label}
               </Link>

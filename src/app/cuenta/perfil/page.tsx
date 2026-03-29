@@ -157,7 +157,7 @@ export default function MiCuentaPage() {
               placeholder={field.label}
               maxLength={field.name === "phone" ? 10 : undefined}
               readOnly={field.readOnly || false}
-              className={`mt-1 w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d] ${
+              className={`mt-1 w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand ${
                 field.readOnly
                   ? "bg-gray-100 cursor-not-allowed"
                   : "border-gray-300"
@@ -173,8 +173,8 @@ export default function MiCuentaPage() {
           <button
             type="submit"
             disabled={!changed || loadingSave}
-            className={`px-6 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] transition-all duration-300 font-medium flex items-center gap-2 ${
-              !changed ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+            className={`btn btn-md btn-primary ${
+              !changed || loadingSave ? "opacity-50" : ""
             }`}
           >
             Guardar
@@ -186,7 +186,7 @@ export default function MiCuentaPage() {
           <button
             type="button"
             onClick={handleReset}
-            className="px-6 py-2 bg-transparent text-gray-700 border border-gray-400 rounded-xl hover:bg-gray-100 transition-all duration-300 font-medium cursor-pointer"
+            className="btn btn-md border border-gray-400 bg-transparent font-medium text-gray-700 shadow-none hover:bg-gray-100"
           >
             Limpiar
           </button>

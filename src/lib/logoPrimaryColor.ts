@@ -4,7 +4,9 @@
  * Si falla CORS o la imagen, se usa el fallback.
  */
 
-const FALLBACK_BG = "#02101d";
+import { BRAND_PRIMARY } from "@/lib/brand";
+
+const FALLBACK_BG = BRAND_PRIMARY;
 
 export type SidebarColorsFromLogo = {
   background: string;

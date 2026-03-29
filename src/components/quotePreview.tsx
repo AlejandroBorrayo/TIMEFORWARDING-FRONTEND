@@ -43,7 +43,7 @@ export default function QuotePreview({
           <div className="text-left">
             <h1
               style={{ marginBottom: "12px" }}
-              className="text-xl text-[#02101d]"
+              className="text-xl text-brand"
             >
               Time Forwarding
             </h1>
@@ -85,7 +85,7 @@ export default function QuotePreview({
       ======================== */}
       <table className="w-full table-fixed border-collapse mb-6">
         <thead>
-          <tr className="bg-[#02101d] text-white border-y">
+          <tr className="bg-brand text-white border-y">
             <th className="text-left p-3 font-semibold w-[55%]">
               Producto o servicio
             </th>
@@ -156,7 +156,7 @@ export default function QuotePreview({
       ======================== */}
       {notes.length > 0 && notes?.[0] !== "" && (
         <div className="mt-10">
-          <h3 className="font-semibold text-xl text-[#02101d] mb-2">Notas:</h3>
+          <h3 className="font-semibold text-xl text-brand mb-2">Notas:</h3>
           <div className="space-y-2 text-gray-700 whitespace-pre-line">
             {notes.map((n, i) => (
               <div key={i}>{n}</div>

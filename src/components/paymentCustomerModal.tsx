@@ -90,7 +90,7 @@ export default function ModalPayCustomer({
               ×
             </button>
 
-            <h3 className="text-xl font-semibold text-center text-[#02101d]">
+            <h3 className="text-xl font-semibold text-center text-brand">
               Registrar cobro
             </h3>
 
@@ -111,7 +111,7 @@ export default function ModalPayCustomer({
 
             <div className="border border-gray-300 rounded-lg p-4 text-center">
               <p className="text-sm text-gray-500">Monto pendiente</p>
-              <p className="text-2xl font-semibold text-[#02101d]">
+              <p className="text-2xl font-semibold text-brand">
                 {quoteCurrency} ${pendingAmount.toFixed(2)}
               </p>
             </div>
@@ -146,7 +146,7 @@ export default function ModalPayCustomer({
               <button
                 onClick={handleSubmit}
                 disabled={loading || pendingAmount === 0}
-                className={`px-4 py-2 rounded-lg bg-[#02101d] text-white hover:bg-[#0e1b32] flex items-center gap-2 ${
+                className={`btn btn-sm btn-primary ${
                   loading || pendingAmount === 0
                     ? "opacity-70 cursor-not-allowed"
                     : ""

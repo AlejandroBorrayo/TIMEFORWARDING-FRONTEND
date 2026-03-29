@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { Find as FindFolio } from "@/services/folio";
 import { FolioCollectionInterface } from "@/type/folio.interface";
+import { BRAND_PRIMARY } from "@/lib/brand";
 
 const formatMoney = (value: number, currency: string) => {
   try {
@@ -277,7 +278,7 @@ export default function FolioResumenPage() {
                         <XAxis dataKey="name" />
                         <YAxis />
                         <Tooltip formatter={(value: number) => formatMoney(Number(value), "USD")} />
-                        <Bar dataKey="value" fill="#02101d" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="value" fill={BRAND_PRIMARY} radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -294,7 +295,7 @@ export default function FolioResumenPage() {
                         <XAxis dataKey="name" />
                         <YAxis />
                         <Tooltip formatter={(value: number) => formatMoney(Number(value), "MXN")} />
-                        <Bar dataKey="value" fill="#02101d" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="value" fill={BRAND_PRIMARY} radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

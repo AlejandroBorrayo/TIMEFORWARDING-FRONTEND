@@ -148,7 +148,7 @@ export default function UsersPage() {
 
         <button
           onClick={() => setShowInviteModal(true)}
-          className="px-4 py-2 bg-[#02101d] text-white rounded-xl cursor-pointer"
+          className="btn btn-sm btn-primary"
         >
           Nuevo usuario
         </button>
@@ -161,7 +161,7 @@ export default function UsersPage() {
           placeholder="Buscar por nombre o correo..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]"
+          className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
         />
       </div>
 
@@ -328,7 +328,7 @@ export default function UsersPage() {
                 ×
               </button>
 
-              <h3 className="text-xl font-semibold text-center text-[#02101d]">
+              <h3 className="text-xl font-semibold text-center text-brand">
                 Invitar usuario
               </h3>
 
@@ -338,7 +338,7 @@ export default function UsersPage() {
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
                   placeholder="Nombre completo"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#02101d]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -349,7 +349,7 @@ export default function UsersPage() {
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="correo@ejemplo.com"
                   type="email"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#02101d]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -364,10 +364,10 @@ export default function UsersPage() {
                 <button
                   onClick={handleInvite}
                   disabled={sendingInvite}
-                  className={`px-6 py-2 rounded-xl text-white flex items-center justify-center transition-all cursor-pointer ${
+                  className={`btn btn-md transition-all ${
                     sendingInvite
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-[#02101d] hover:bg-[#0e1b32]"
+                      ? "cursor-not-allowed bg-gray-400 text-white shadow-none hover:bg-gray-400"
+                      : "btn-primary"
                   }`}
                 >
                   {sendingInvite ? "Enviando..." : "Aceptar"}
@@ -572,7 +572,7 @@ function UserActionsModal({
                 ×
               </button>
 
-              <h3 className="text-xl font-semibold text-[#02101d]">
+              <h3 className="text-xl font-semibold text-brand">
                 Actualizar comisión
               </h3>
 
@@ -587,7 +587,7 @@ function UserActionsModal({
                       e.target.value as "percentage" | "amount",
                     )
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#02101d]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="percentage">Porcentaje</option>
                   <option value="amount">Monto fijo</option>
@@ -609,7 +609,7 @@ function UserActionsModal({
                   placeholder={
                     commissionType === "percentage" ? "Ej. 10" : "Ej. 1500"
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#02101d]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -624,10 +624,10 @@ function UserActionsModal({
                 <button
                   onClick={handleSaveCommission}
                   disabled={savingCommission}
-                  className={`px-6 py-2 rounded-xl text-white transition-all cursor-pointer ${
+                  className={`btn btn-md transition-all ${
                     savingCommission
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-[#02101d] hover:bg-[#0e1b32]"
+                      ? "cursor-not-allowed bg-gray-400 text-white shadow-none hover:bg-gray-400"
+                      : "btn-primary"
                   }`}
                 >
                   {savingCommission ? "Guardando..." : "Guardar"}

@@ -71,13 +71,13 @@ export default function ModalSupplierHistory({
               ×
             </button>
 
-            <h3 className="text-xl font-semibold text-center text-[#02101d]">
+            <h3 className="text-xl font-semibold text-center text-brand">
               Historial de pagos
             </h3>
 
             {/* Info del item */}
             <div className="border border-gray-300 rounded-xl p-4 flex flex-col gap-2">
-              <p className="font-medium text-[#02101d]">{item.name}</p>
+              <p className="font-medium text-brand">{item.name}</p>
               {item.description && (
                 <p className="text-sm text-gray-500">{item.description}</p>
               )}

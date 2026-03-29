@@ -262,7 +262,7 @@ export default function QuoteEditor({
         <div className="text-left">
           <h1
             style={{ marginBottom: "12px" }}
-            className="text-xl text-[#02101d]"
+            className="text-xl text-brand"
           >
             Time Forwarding
           </h1>
@@ -350,7 +350,7 @@ export default function QuoteEditor({
                           : null
                       )
                     }
-                    className=" px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]"
+                    className=" px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
                   />
                 ) : (
                   <span className={"font-semibold"}>
@@ -363,7 +363,7 @@ export default function QuoteEditor({
         </div>
       </div>
       <table className="w-full border-collapse">
-        <thead className="bg-[#02101d] text-white">
+        <thead className="bg-brand text-white">
           <tr>
             <th className="p-3 text-center ">Producto o servicio</th>
             {type !== "quote" && <th className="p-3 text-center ">Provedor</th>}
@@ -508,8 +508,8 @@ export default function QuoteEditor({
                       <Select.Trigger
                         className="
                     w-full px-3 py-2 text-sm border border-gray-300 rounded-md
-                    focus:outline-none focus:ring-1 focus:ring-[#02101d]
-                    focus:border-[#02101d]
+                    focus:outline-none focus:ring-1 focus:ring-brand
+                    focus:border-brand
                     flex justify-between items-center bg-white text-gray-700
                   "
                       >

@@ -16,7 +16,7 @@ export const Toast = ({ message, type = "success", visible, onClose, duration = 
     setTimeout(onClose, duration);
   }
 
-  const bgColor = type === "success" ? "bg-[#02101d]" : "bg-red-600";
+  const bgColor = type === "success" ? "bg-brand" : "bg-red-600";
 
   return (
     <AnimatePresence>

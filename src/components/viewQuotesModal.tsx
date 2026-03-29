@@ -60,14 +60,14 @@ export default function ModalViewQuotes({
               className="relative"
             >
               {/* Punto timeline */}
-              <span className="absolute -left-[11px] top-7 w-5 h-5 bg-[#02101d] rounded-full ring-4 ring-[#02101d]/20" />
+              <span className="absolute -left-[11px] top-7 w-5 h-5 bg-brand rounded-full ring-4 ring-brand/20" />
 
               {/* Card costo */}
               <div className="bg-gray-50 border border-gray-300 rounded-2xl p-5 ">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                   <div className="flex items-center gap-3">
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-[#02101d]/10 text-[#02101d]">
+                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-brand/10 text-brand">
                       Costo #{service_cost?.no_service_cost}
                     </span>
 
@@ -89,7 +89,7 @@ export default function ModalViewQuotes({
 
                     <Link
                       href={`/cuenta/folios/${folio}/costo/${service_cost?.no_service_cost}/cotizacion/nuevo`}
-                      className="px-4 py-2 rounded-xl bg-[#02101d] text-white text-sm hover:bg-[#0e1b32] transition"
+                      className="btn btn-sm btn-primary"
                     >
                       Crear cotización
                     </Link>
@@ -120,7 +120,7 @@ export default function ModalViewQuotes({
                   service_cost.quotes.map((quote, qIndex) => (
                     <div
                       key={qIndex}
-                      className="bg-white border border-dashed border-gray-300 rounded-2xl p-4 hover:border-[#02101d] transition"
+                      className="bg-white border border-dashed border-gray-300 rounded-2xl p-4 hover:border-brand transition"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-sm font-semibold">
@@ -158,7 +158,7 @@ export default function ModalViewQuotes({
                         <div className="flex items-end">
                           <Link
                             href={`/cuenta/folios/${folio}/costo/${service_cost?.no_service_cost}/cotizacion/${quote.no_quote}`}
-                            className="text-sm text-[#02101d] hover:underline"
+                            className="text-sm text-brand hover:underline"
                           >
                             Ver cotización →
                           </Link>

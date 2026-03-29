@@ -62,7 +62,7 @@ export default function MovimientosPage() {
   const [showModal, setShowModal] = useState(false);
 
   const inputClass =
-    "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]";
+    "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand";
 
   // --------------------------------------------
   // FETCH MOVIMIENTOS
@@ -271,7 +271,7 @@ export default function MovimientosPage() {
               </h3>
 
               {/* TARJETA */}
-              <div className="bg-gradient-to-r from-[#02101d] to-[#1a2b4c] text-white rounded-xl p-4 relative">
+              <div className="bg-gradient-to-r from-brand to-brand-muted text-white rounded-xl p-4 relative">
                 <div className="flex justify-between mb-6">
                   <span className="text-sm uppercase">Tarjeta de crédito</span>
                   {cardBrand && (
@@ -420,7 +420,7 @@ export default function MovimientosPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] hover:shadow-2xl cursor-pointer transition-all duration-300 font-medium flex items-center justify-center gap-2"
+                    className="btn btn-md btn-primary hover:shadow-2xl"
                     disabled={isLoading}
                   >
                     Pagar
@@ -480,7 +480,7 @@ export default function MovimientosPage() {
                     <td className="px-4 py-3 text-center">
                       <Link
                         href={`/cuenta/envios/${m.shipping}`}
-                        className="px-3 py-1 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] cursor-pointer transition-colors inline-block text-center"
+                        className="btn btn-xs btn-primary inline-block text-center"
                       >
                         Ver envío
                       </Link>

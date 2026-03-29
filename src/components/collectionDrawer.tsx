@@ -253,21 +253,21 @@ export function RecolectionDrawer({
                 {/*           <div className="flex justify-evenly mb-4">
                     <span
                       className={`font-medium ${
-                        step === 1 ? "text-[#02101d]" : "text-gray-400"
+                        step === 1 ? "text-brand" : "text-gray-400"
                       }`}
                     >
                       1. Guía
                     </span>
                     <span
                       className={`font-medium ${
-                        step === 2 ? "text-[#02101d]" : "text-gray-400"
+                        step === 2 ? "text-brand" : "text-gray-400"
                       }`}
                     >
                       2. Paquetes
                     </span>
                     <span
                       className={`font-medium ${
-                        step === 3 ? "text-[#02101d]" : "text-gray-400"
+                        step === 3 ? "text-brand" : "text-gray-400"
                       }`}
                     >
                       3. Fecha y hora
@@ -314,12 +314,12 @@ export function RecolectionDrawer({
                             transition={{ type: "spring", stiffness: 300 }}
                             className={`relative w-full p-4 text-left border rounded-2xl shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center bg-white transition-all duration-50 cursor-pointer ${
                               isSelected
-                                ? "border-[#02101d] shadow-md"
+                                ? "border-brand shadow-md"
                                 : "border-gray-200 hover:shadow-sm"
                             }`}
                           >
                             {isSelected && (
-                              <div className="absolute top-3 right-3 bg-[#02101d] text-white rounded-full p-1">
+                              <div className="absolute top-3 right-3 bg-brand text-white rounded-full p-1">
                                 <CheckIcon className="w-4 h-4" />
                               </div>
                             )}
@@ -389,9 +389,9 @@ export function RecolectionDrawer({
                       key={selectedShipment._id}
                       type="button"
                       transition={{ type: "spring", stiffness: 300 }}
-                      className={`relative w-full p-4 text-left border rounded-2xl shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center bg-white  ${"border-[#02101d] shadow-md"}`}
+                      className={`relative w-full p-4 text-left border rounded-2xl shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center bg-white  ${"border-brand shadow-md"}`}
                     >
-                      <div className="absolute top-3 right-3 bg-[#02101d] text-white rounded-full p-1">
+                      <div className="absolute top-3 right-3 bg-brand text-white rounded-full p-1">
                         <CheckIcon className="w-4 h-4" />
                       </div>
                       <img
@@ -484,7 +484,7 @@ export function RecolectionDrawer({
                           onValueChange={(value) => setSelectedDate(value)}
                         >
                           {/* Trigger */}
-                          <Select.Trigger className="w-full px-3 py-2 cursor-pointer border border-gray-300 rounded-md flex justify-between items-center bg-white focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]">
+                          <Select.Trigger className="w-full px-3 py-2 cursor-pointer border border-gray-300 rounded-md flex justify-between items-center bg-white focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand">
                             <Select.Value placeholder="Seleccionar fecha" />
                             <Select.Icon>
                               <ChevronDownIcon />
@@ -561,7 +561,7 @@ export function RecolectionDrawer({
                 {step > 1 && (
                   <button
                     onClick={handleBack}
-                    className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-100 transition cursor-pointer flex items-center justify-center"
+                    className="btn btn-sm btn-secondary"
                   >
                     Atrás
                   </button>
@@ -569,7 +569,7 @@ export function RecolectionDrawer({
                 {step === 1 ? (
                   <button
                     onClick={handleNext}
-                    className="px-4 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] transition flex-1 cursor-pointer flex items-center justify-center"
+                    className="btn btn-sm btn-primary flex-1"
                   >
                     Siguiente
                   </button>
@@ -577,12 +577,14 @@ export function RecolectionDrawer({
                   <button
                     onClick={handleCreate}
                     disabled={loadingCreateCollection}
-                    className={`w-full px-4 py-2 rounded-xl transition text-white flex items-center justify-center
-${
-  !totalWeight || !totalPackages || loadingCreateCollection || !selectedDate
-    ? "bg-gray-400 cursor-not-allowed"
-    : "bg-[#02101d] hover:bg-[#0e1b32] cursor-pointer"
-}`}
+                    className={`btn btn-sm w-full text-white ${
+                      !totalWeight ||
+                      !totalPackages ||
+                      loadingCreateCollection ||
+                      !selectedDate
+                        ? "cursor-not-allowed bg-gray-400 shadow-none hover:bg-gray-400"
+                        : "btn-primary"
+                    }`}
                   >
                     {loadingCreateCollection ? (
                       <div className="flex items-center justify-center gap-2">

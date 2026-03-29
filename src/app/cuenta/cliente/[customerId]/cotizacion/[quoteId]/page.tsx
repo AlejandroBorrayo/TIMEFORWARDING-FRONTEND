@@ -275,7 +275,7 @@ export default function QuoteDetailPage() {
         <button
           onClick={() => setShowPayModal(true)}
           disabled={pendingAmount === 0}
-          className={`px-5 py-2.5 rounded-xl bg-[#02101d] text-white hover:bg-[#0e1b32] text-sm font-medium transition cursor-pointer ${
+          className={`btn btn-md btn-primary font-medium ${
             pendingAmount === 0 ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >

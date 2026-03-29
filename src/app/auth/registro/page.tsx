@@ -120,7 +120,7 @@ export default function RegisterPage() {
           <div className="mt-4">
             <button
               onClick={() => router.push("/auth/iniciar-sesion")}
-              className="text-[#02101d] hover:underline font-medium"
+              className="text-brand hover:underline font-medium"
             >
               Volver al inicio de sesión
             </button>
@@ -139,7 +139,7 @@ export default function RegisterPage() {
     >
       {/* Lado izquierdo azul con logo */}
       <div
-        className="w-full md:w-1/4 bg-[#02101d] flex justify-center items-center py-8 cursor-pointer"
+        className="w-full md:w-1/4 bg-brand flex justify-center items-center py-8 cursor-pointer"
         onClick={() => router.push("/auth/iniciar-sesion")}
       >
         <Image
@@ -172,7 +172,7 @@ export default function RegisterPage() {
                 value={form.full_name}
                 onChange={handleChange}
                 required
-                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-[#02101d]"
+                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-brand"
               />
             </div>
 
@@ -187,7 +187,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 readOnly={!!invite}
                 required
-                className={`mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-[#02101d] ${
+                className={`mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-brand ${
                   invite ? "bg-gray-100 cursor-not-allowed" : ""
                 }`}
               />
@@ -201,7 +201,7 @@ export default function RegisterPage() {
                 value={form.telefono}
                 onChange={handleChange}
                 required
-                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-[#02101d]"
+                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-brand"
               />
             </div>
 
@@ -213,7 +213,7 @@ export default function RegisterPage() {
                 value={form.password}
                 onChange={handleChange}
                 required
-                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-[#02101d]"
+                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-brand"
               />
             </div>
 
@@ -227,7 +227,7 @@ export default function RegisterPage() {
                 value={form.confirmPassword}
                 onChange={handleChange}
                 required
-                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-[#02101d]"
+                className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-brand"
               />
             </div>
 
@@ -241,7 +241,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-4 px-6 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] transition-all duration-300 font-medium flex justify-center items-center gap-2"
+              className="mt-4 btn btn-md btn-primary w-full max-w-md"
             >
               {loading ? (
                 <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-5 h-5"></span>
@@ -256,7 +256,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => router.push("/auth/iniciar-sesion")}
-              className="text-[#02101d] text-sm hover:underline font-medium transition-all cursor-pointer"
+              className="text-brand text-sm hover:underline font-medium transition-all cursor-pointer"
             >
               Volver al inicio de sesión
             </button>

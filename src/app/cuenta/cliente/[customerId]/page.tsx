@@ -245,7 +245,7 @@ export default function CustomerDashboardPage() {
                     <div className="flex gap-2 flex-shrink-0 flex-wrap">
                       <Link
                         href={`/cuenta/cliente/${customerId}/cotizacion/${entry.quote._id || entry.quote.no_quote}`}
-                        className="px-3 py-1.5 rounded-xl bg-[#02101d] text-white hover:bg-[#0e1b32] text-sm font-medium transition"
+                        className="btn btn-xs btn-primary font-medium"
                       >
                         Ver dashboard
                       </Link>

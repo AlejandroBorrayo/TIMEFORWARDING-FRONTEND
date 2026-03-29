@@ -47,7 +47,7 @@ export default function CompanySwitchOverlay({
 }: CompanySwitchOverlayProps) {
   return (
     <div
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#02101d]/96 px-4 py-10 text-center text-white backdrop-blur-md sm:px-8"
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-brand/96 px-4 py-10 text-center text-white backdrop-blur-md sm:px-8"
       role="alertdialog"
       aria-busy="true"
       aria-live="polite"

@@ -149,7 +149,7 @@ export default function ModalCrearCliente({
               ×
             </button>
 
-            <h3 className="text-xl font-semibold text-center text-[#02101d]">
+            <h3 className="text-xl font-semibold text-center text-brand">
               Nuevo Cliente
             </h3>
 
@@ -180,7 +180,7 @@ export default function ModalCrearCliente({
             {/* Contactos */}
             <div className="mt-4">
               <div className="flex justify-between items-center mb-3">
-                <label className="font-medium text-[#02101d]">Contactos</label>
+                <label className="font-medium text-brand">Contactos</label>
                 <button
                   onClick={addContact}
                   className="bg-green-500 hover:bg-green-600 text-white w-6 h-6 rounded-full flex items-center justify-center"
@@ -280,7 +280,7 @@ export default function ModalCrearCliente({
               <button
                 onClick={createCustomer}
                 disabled={loading}
-                className={`px-4 py-2 rounded-lg bg-[#02101d] text-white hover:bg-[#0e1b32] flex items-center gap-2 cursor-pointer${
+                className={`btn btn-sm btn-primary${
                   loading ? "opacity-70 cursor-not-allowed" : ""
                 }`}
               >

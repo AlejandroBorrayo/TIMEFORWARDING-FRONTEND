@@ -77,7 +77,7 @@ export default function LoginPage() {
       transition={{ duration: 0.6 }}
     >
       {/* Lado izquierdo azul con logo */}
-      <div className="w-full md:w-1/4 bg-[#02101d] flex justify-center items-center py-8">
+      <div className="w-full md:w-1/4 bg-brand flex justify-center items-center py-8">
         <Image
           src="https://i.postimg.cc/tRx2S91P/Captura-de-pantalla-2025-12-05-a-la(s)-3-46-29-p-m.png"
           alt="Logo empresa"
@@ -115,7 +115,7 @@ export default function LoginPage() {
                     onChange={handleChange}
                     placeholder="ejemplo@correo.com"
                     required
-                    className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]"
+                    className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
                   />
                 </div>
 
@@ -130,7 +130,7 @@ export default function LoginPage() {
                     onChange={handleChange}
                     placeholder="••••••••"
                     required
-                    className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]"
+                    className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
                   />
                 </div>
 
@@ -141,7 +141,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="mt-4 px-6 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] transition-all duration-300 font-medium flex justify-center items-center gap-2 cursor-pointer"
+                  className="mt-4 btn btn-md btn-primary w-full max-w-md"
                 >
                   {loading ? (
                     <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-5 h-5"></span>
@@ -151,7 +151,7 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="mt-4 text-center text-[#02101d] text-sm">
+              <div className="mt-4 text-center text-brand text-sm">
                 <button
                   className="hover:underline cursor-pointer"
                   onClick={() => setIsRecovering(true)}
@@ -185,7 +185,7 @@ export default function LoginPage() {
                     onChange={handleChange}
                     placeholder="ejemplo@correo.com"
                     required
-                    className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02101d] focus:border-[#02101d]"
+                    className="mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
                   />
                 </div>
 
@@ -202,7 +202,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="mt-4 px-6 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] transition-all duration-300 font-medium flex justify-center items-center gap-2 cursor-pointer"
+                  className="mt-4 btn btn-md btn-primary w-full max-w-md"
                 >
                   {loading ? (
                     <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-5 h-5"></span>
@@ -212,7 +212,7 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="mt-4 text-center text-[#02101d] text-sm">
+              <div className="mt-4 text-center text-brand text-sm">
                 <button
                   className="hover:underline cursor-pointer"
                   onClick={() => {

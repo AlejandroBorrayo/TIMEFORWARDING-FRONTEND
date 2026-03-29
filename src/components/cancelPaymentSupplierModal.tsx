@@ -59,7 +59,7 @@ export default function ModalConfirmCancelPayment({
             exit={{ scale: 0.9, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h4 className="text-lg font-semibold text-[#02101d]">
+            <h4 className="text-lg font-semibold text-brand">
               ¿Cancelar pago?
             </h4>
 

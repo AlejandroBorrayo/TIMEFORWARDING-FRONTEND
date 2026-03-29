@@ -315,7 +315,7 @@ export default function FoliosPage() {
           value={folioSearch}
           onChange={(e) => setFolioSearch(e.target.value)}
           className="flex-1 min-w-[220px] px-4 py-2 border border-gray-300 rounded-xl
-                     focus:ring-1 focus:ring-[#02101d]"
+                     focus:ring-1 focus:ring-brand"
         />
 
         {is_admin && (
@@ -325,14 +325,14 @@ export default function FoliosPage() {
             value={seller_name}
             onChange={(e) => setSeller_name(e.target.value)}
             className="flex-1 min-w-[220px] px-4 py-2 border border-gray-300 rounded-xl
-                       focus:ring-1 focus:ring-[#02101d]"
+                       focus:ring-1 focus:ring-brand"
           />
         )}
 
         <button
           type="button"
           onClick={() => void openCreateFolioModal()}
-          className="px-4 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] cursor-pointer"
+          className="btn btn-sm btn-primary"
         >
           Crear folio
         </button>
@@ -521,7 +521,7 @@ export default function FoliosPage() {
 
                   <Link
                     href={`/cuenta/folios/${folio.folio}/costo/nuevo`}
-                    className="px-4 py-2 bg-[#02101d] text-white rounded-xl hover:bg-[#0e1b32] transition text-sm font-medium"
+                    className="btn btn-sm btn-primary text-sm font-medium"
                   >
                     ➕ Nuevo costo
                   </Link>
@@ -898,7 +898,7 @@ export default function FoliosPage() {
               >
                 ×
               </button>
-              <h3 className="text-xl font-semibold text-[#02101d] pr-8">
+              <h3 className="text-xl font-semibold text-brand pr-8">
                 Confirmar nuevo folio
               </h3>
               <p className="text-sm text-gray-600">
@@ -965,7 +965,7 @@ export default function FoliosPage() {
                     !userid
                   }
                   onClick={() => void confirmCreateFolio()}
-                  className="px-4 py-2 rounded-xl bg-[#02101d] text-white hover:bg-[#0e1b32] disabled:opacity-50 cursor-pointer"
+                  className="btn btn-sm btn-primary disabled:opacity-50"
                 >
                   {creatingFolio ? "Creando…" : "Confirmar y crear"}
                 </button>

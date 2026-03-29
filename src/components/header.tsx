@@ -58,10 +58,10 @@ export default function Header({ onOpenSidebar, session }: HeaderProps) {
           <div className="relative shrink-0">
             <DropdownMenu.Trigger
               type="button"
-              className="flex items-center gap-2 cursor-pointer focus:outline-none select-none max-w-[min(100%,220px)]"
+              className="flex items-center gap-2 cursor-pointer focus:outline-none select-none max-w-[min(100%,280px)]"
             >
               {companiesLoading ? (
-                <span className="h-9 w-28 bg-gray-200 animate-pulse rounded-lg" />
+                <span className="h-12 w-32 bg-gray-200 animate-pulse rounded-lg sm:h-14 sm:w-36" />
               ) : (
                 <>
                   {activeCompany?.logo ? (
@@ -69,16 +69,16 @@ export default function Header({ onOpenSidebar, session }: HeaderProps) {
                     <img
                       src={activeCompany.logo}
                       alt=""
-                      className="w-9 h-9 rounded-lg object-cover bg-gray-100 shrink-0"
+                      className="h-8 w-8 rounded-lg object-cover bg-gray-100 shrink-0 sm:h-12 sm:w-12"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-lg bg-gray-200 shrink-0 flex items-center justify-center text-gray-500 text-xs">
+                    <div className="h-11 w-11 rounded-lg bg-gray-200 shrink-0 flex items-center justify-center text-gray-500 text-xs sm:h-14 sm:w-14">
                       —
                     </div>
                   )}
                   <div className="text-left min-w-0 hidden sm:block">
                     <p className="text-xs text-gray-500 leading-tight">Empresa</p>
-                    <p className="text-gray-800 font-medium text-sm truncate max-w-[140px]">
+                    <p className="text-gray-800 font-medium text-sm truncate max-w-[160px] sm:max-w-[180px]">
                       {activeCompany?.name ?? "Sin empresa"}
                     </p>
                   </div>
@@ -138,10 +138,10 @@ export default function Header({ onOpenSidebar, session }: HeaderProps) {
                       <img
                         src={c.logo}
                         alt=""
-                        className="w-8 h-8 rounded-md object-cover shrink-0 bg-gray-100"
+                        className="h-10 w-10 rounded-md object-cover shrink-0 bg-gray-100"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-md bg-gray-200 shrink-0" />
+                      <div className="h-10 w-10 rounded-md bg-gray-200 shrink-0" />
                     )}
                     <span className="flex-1 truncate font-medium text-gray-800">
                       {c.name}

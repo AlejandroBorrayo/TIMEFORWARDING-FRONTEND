@@ -82,7 +82,7 @@ export default function CompanyModal({
               ×
             </button>
 
-            <h3 className="text-xl font-semibold text-center text-[#02101d]">
+            <h3 className="text-xl font-semibold text-center text-brand">
               {initial ? "Editar empresa" : "Nueva empresa"}
             </h3>
 
@@ -125,7 +125,7 @@ export default function CompanyModal({
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="px-6 py-2 rounded-xl bg-[#02101d] text-white hover:bg-[#0e1b32] disabled:opacity-50"
+                className="btn btn-md btn-primary disabled:opacity-50"
               >
                 {saving ? "Guardando…" : "Guardar"}
               </button>

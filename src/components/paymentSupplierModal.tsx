@@ -116,13 +116,13 @@ export default function ModalPaySupplierItem({
               ×
             </button>
 
-            <h3 className="text-xl font-semibold text-center text-[#02101d]">
+            <h3 className="text-xl font-semibold text-center text-brand">
               Pago a proveedor
             </h3>
 
             {/* Info del item */}
             <div className="border border-gray-300 rounded-xl p-4  flex flex-col gap-2">
-              <p className="font-medium text-[#02101d]">{item.name}</p>
+              <p className="font-medium text-brand">{item.name}</p>
               <p className="text-sm text-gray-500">{item.description}</p>
 
               <div className="flex justify-between text-sm mt-2">
@@ -148,7 +148,7 @@ export default function ModalPaySupplierItem({
             {/* Pendiente */}
             <div className=" border border-gray-300 rounded-lg p-4 text-center">
               <p className="text-sm text-gray-500">Monto pendiente</p>
-              <p className="text-2xl font-semibold text-[#02101d]">
+              <p className="text-2xl font-semibold text-brand">
                 {item.currency} ${pendingAmount.toFixed(2)}
               </p>
             </div>
@@ -185,7 +185,7 @@ export default function ModalPaySupplierItem({
               <button
                 onClick={handleSubmit}
                 disabled={loading || pendingAmount === 0}
-                className={`px-4 py-2 rounded-lg bg-[#02101d] text-white hover:bg-[#0e1b32] flex items-center gap-2 ${
+                className={`btn btn-sm btn-primary ${
                   loading || pendingAmount === 0
                     ? "opacity-70 cursor-not-allowed"
                     : ""

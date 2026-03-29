@@ -102,8 +102,7 @@ export default function QuoteCreatePage() {
       <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-gray-300">
         <Link
           href={`/cuenta/folios/${currentFolio}/costo/${currentCost}`}
-          className={`px-6 py-3 rounded-xl font-medium transition border  hover:bg-[#02101d]/5
-   `}
+          className="btn btn-lg btn-soft-brand font-medium"
         >
           Ver costo
         </Link>
@@ -111,12 +110,11 @@ export default function QuoteCreatePage() {
         <button
           onClick={() => window.open(pdf, "_blank")}
           disabled={!pdf || loadingQuote}
-          className={`px-6 py-3 rounded-xl font-medium transition border cursor-pointer
-      ${
-        !pdf || loadingQuote
-          ? "border-gray-300 text-gray-400 cursor-not-allowed"
-          : "border-[#02101d] text-[#02101d] hover:bg-[#02101d]/5"
-      }`}
+          className={`btn btn-lg font-medium ${
+            !pdf || loadingQuote
+              ? "cursor-not-allowed border border-gray-300 bg-white text-gray-400 shadow-none"
+              : "btn-soft-brand"
+          }`}
         >
           Descargar PDF
         </button>

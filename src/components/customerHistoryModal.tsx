@@ -65,7 +65,7 @@ export default function ModalCustomerHistory({
               ×
             </button>
 
-            <h3 className="text-xl font-semibold text-center text-[#02101d]">
+            <h3 className="text-xl font-semibold text-center text-brand">
               Historial de cobros
             </h3>
 

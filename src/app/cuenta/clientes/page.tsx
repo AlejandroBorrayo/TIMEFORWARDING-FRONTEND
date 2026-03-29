@@ -91,12 +91,12 @@ export default function CustomersPage() {
           value={customerSearch}
           onChange={(e) => setCustomerSearch(e.target.value)}
           className="flex-1 min-w-[220px] px-4 py-2 border border-gray-300 rounded-xl
-                     focus:ring-1 focus:ring-[#02101d]"
+                     focus:ring-1 focus:ring-brand"
         />
 
         <button
           onClick={() => setOpenNewCustomer(true)}
-          className="px-4 py-2 bg-[#02101d] text-white rounded-xl cursor-pointer hover:bg-[#0e1b32]"
+          className="btn btn-sm btn-primary"
         >
           Nuevo cliente
         </button>
@@ -174,7 +174,7 @@ export default function CustomersPage() {
               <td className="px-4 py-3 text-center">
                 <Link
                   href={`/cuenta/cliente/${customer._id}`}
-                  className="px-4 py-2 rounded-xl transition border hover:bg-[#02101d]/5 text-sm font-medium cursor-pointer"
+                  className="btn btn-sm btn-outline-primary"
                 >
                   Ver histórico
                 </Link>
@@ -231,7 +231,7 @@ export default function CustomersPage() {
               onClick={() =>
                 (window.location.href = `/cuenta/cliente/${customer._id}`)
               }
-              className="mt-4 w-full px-4 py-2 text-sm border border-[#02101d] text-[#02101d] rounded-lg hover:bg-[#02101d] hover:text-white transition cursor-pointer"
+              className="btn btn-sm btn-outline-primary mt-4 w-full text-sm font-semibold"
             >
               Ver histórico
             </button>
