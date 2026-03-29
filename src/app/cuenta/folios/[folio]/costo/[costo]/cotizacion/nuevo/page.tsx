@@ -105,9 +105,7 @@ export default function QuoteCreatePage() {
         : currency;
       const latestNotes = notesRef.current;
       const noteLines = latestNotes
-        .map((n) =>
-          typeof n === "string" ? n.trim() : (n?.note ?? "").trim(),
-        )
+        .map((n) => (n.note ?? "").trim())
         .filter((line) => line.length > 0);
       const quote: QuoteDto = {
         seller_userid: userid,
