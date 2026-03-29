@@ -81,22 +81,30 @@ export function SelectedCompanyProvider({
     };
   }, [refreshCompanies]);
 
+  /**
+   * Sincroniza empresa activa con localStorage y el listado:
+   * - Si el id guardado sigue existiendo en el array, se mantiene.
+   * - Si no hay id válido (primera visita, sesión nueva, id obsoleto), se usa la primera empresa.
+   */
   useEffect(() => {
     if (loading || companies.length === 0) return;
     const stored = getStoredCompanyId();
-    if (stored && !companies.some((c) => c._id === stored)) {
-      setStoredCompanyId(null);
-      setCompanyIdState(null);
-    }
-  }, [loading, companies]);
+    const validStored =
+      stored != null && companies.some((c) => c._id === stored);
 
-  useEffect(() => {
-    if (loading) return;
-    if (getStoredCompanyId()) return;
-    if (companies.length === 1 && companies[0]._id) {
-      const id = companies[0]._id;
-      setStoredCompanyId(id);
-      setCompanyIdState(id);
+    if (validStored && stored) {
+      setCompanyIdState((prev) => (prev === stored ? prev : stored));
+      return;
+    }
+
+    if (stored && !validStored) {
+      setStoredCompanyId(null);
+    }
+
+    const first = companies[0];
+    if (first?._id) {
+      setStoredCompanyId(first._id);
+      setCompanyIdState(first._id);
     }
   }, [loading, companies]);
 
