@@ -8,6 +8,15 @@ export const TIME_WHEELS_LOGO_URL =
 export const TIME_TREK_LOGO_URL =
   "https://i.postimg.cc/wTD5g4HN/unnamed.jpg";
 
-export const CONTACT_PHONE_DISPLAY = "+52 55 2713 3107";
-export const CONTACT_PHONE_TEL = "+525527133107";
-export const CONTACT_EMAIL = "mx.operaciones@timeforwarding.com.mx";
+/** Teléfono con formato legible (landing, aviso de privacidad). */
+export const CONTACT_PHONE_DISPLAY =
+  process.env.NEXT_PUBLIC_CONTACT_PHONE_DISPLAY?.trim() ??
+  "+52 55 2713 3107";
+
+/** Mismo número sin espacios para enlaces `tel:`. */
+export const CONTACT_PHONE_TEL =
+  process.env.NEXT_PUBLIC_CONTACT_PHONE_TEL?.trim() ?? "+525527133107";
+
+export const CONTACT_EMAIL =
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() ??
+  "mx.operaciones@timeforwarding.com.mx";
