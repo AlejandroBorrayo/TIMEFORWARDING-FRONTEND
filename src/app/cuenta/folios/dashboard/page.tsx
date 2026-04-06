@@ -194,7 +194,9 @@ export default function FoliosDashboardPage() {
         });
       }
 
-      setFolios(allRecords);
+      setFolios(
+        allRecords.filter((f) => f.disabled !== true),
+      );
     } catch (err) {
       console.error("Error cargando dashboard de folios:", err);
       setError("No fue posible cargar el dashboard general.");

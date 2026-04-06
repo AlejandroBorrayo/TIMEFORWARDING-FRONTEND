@@ -7,6 +7,7 @@ import { DotsVerticalIcon } from "@radix-ui/react-icons";
 import {
   CreateFolioWithoutCost,
   FindAll as FindAllFolios,
+  SetFolioDisabled,
   SetQuoteActive,
   SetServiceCostActive,
 } from "@/services/folio";
@@ -117,6 +118,9 @@ export default function FoliosPage() {
   const [suggestedFolio, setSuggestedFolio] = useState("");
   const [preparingSuggestedFolio, setPreparingSuggestedFolio] = useState(false);
   const [creatingFolio, setCreatingFolio] = useState(false);
+  const [togglingFolioDisabledId, setTogglingFolioDisabledId] = useState<
+    string | null
+  >(null);
 
   const fetchFolios = useCallback(async () => {
     setLoading(true);
@@ -187,6 +191,33 @@ export default function FoliosPage() {
       await fetchFolios();
     } catch (error) {
       console.log("Error activating service cost:", error);
+    }
+  };
+
+  const handleSetFolioDisabled = async (
+    folio: FolioCollectionInterface,
+    disabled: boolean,
+  ) => {
+    if (!folio.folio?.trim()) return;
+    setTogglingFolioDisabledId(folio._id ?? null);
+    try {
+      await SetFolioDisabled({ folio: folio.folio, disabled });
+      setToast({
+        visible: true,
+        message: disabled
+          ? "Folio desactivado. No se podrán crear costos ni cotizaciones hasta reactivarlo."
+          : "Folio activado de nuevo.",
+        type: "success",
+      });
+      await fetchFolios();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      const msg =
+        ax.response?.data?.message ??
+        "No se pudo actualizar el estado del folio.";
+      setToast({ visible: true, message: String(msg), type: "error" });
+    } finally {
+      setTogglingFolioDisabledId(null);
     }
   };
 
@@ -395,11 +426,16 @@ export default function FoliosPage() {
               (acc, cost) => acc + (cost.quotes?.length || 0),
               0,
             ) || 0;
+          const folioIsDisabled = folio.disabled === true;
           return (
             <div key={folio._id} className="mt-6">
               {/* ---------- FOLIO CARD ---------- */}
               <div
-                className="bg-white border border-gray-300 rounded-2xl p-6 cursor-pointer hover:shadow-md transition-shadow"
+                className={`rounded-2xl p-6 cursor-pointer hover:shadow-md transition-shadow border ${
+                  folioIsDisabled
+                    ? "bg-amber-50/60 border-amber-300 border-2"
+                    : "bg-white border-gray-300"
+                }`}
                 onClick={() =>
                   setOpenFolios((prev) => ({
                     ...prev,
@@ -410,11 +446,23 @@ export default function FoliosPage() {
                 {/* Header con información del folio */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4 flex-wrap">
-                    <h2 className="text-2xl font-bold text-gray-800">
+                    <h2
+                      className={`text-2xl font-bold ${
+                        folioIsDisabled ? "text-amber-900" : "text-gray-800"
+                      }`}
+                    >
                       Folio {folio.folio}
                     </h2>
 
                     <div className="flex items-center gap-3 text-sm text-gray-600">
+                      {folioIsDisabled && (
+                        <span
+                          className="px-3 py-1 bg-amber-200 text-amber-900 rounded-full font-semibold"
+                          title="Este folio no permite crear costos ni cotizaciones hasta reactivarlo."
+                        >
+                          Desactivado
+                        </span>
+                      )}
                       {folio?.service_cost?.length > 0 && (
                         <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">
                           {folio.service_cost.length} costo(s)
@@ -506,7 +554,15 @@ export default function FoliosPage() {
 
                   {folio?.service_cost?.map((item) => {
                     if (item.active) {
-                      return (
+                      return folioIsDisabled ? (
+                        <span
+                          key={`${item._id}-nuevo-cotizacion`}
+                          className="px-4 py-2 rounded-xl border border-dashed border-amber-400 text-amber-800 bg-amber-100/50 text-sm font-medium cursor-not-allowed"
+                          title="Reactiva el folio para crear cotizaciones."
+                        >
+                          ➕ Nueva cotización
+                        </span>
+                      ) : (
                         <Link
                           key={`${item._id}-nuevo-cotizacion`}
                           href={`/cuenta/folios/${folio.folio}/costo/${item.no_service_cost}/cotizacion/nuevo`}
@@ -519,12 +575,44 @@ export default function FoliosPage() {
                     return null;
                   })}
 
-                  <Link
-                    href={`/cuenta/folios/${folio.folio}/costo/nuevo`}
-                    className="btn btn-sm btn-primary text-sm font-medium"
-                  >
-                    ➕ Nuevo costo
-                  </Link>
+                  {folioIsDisabled ? (
+                    <span
+                      className="btn btn-sm border border-dashed border-amber-400 text-amber-900 bg-amber-100/50 text-sm font-medium cursor-not-allowed"
+                      title="Reactiva el folio para agregar costos."
+                    >
+                      ➕ Nuevo costo
+                    </span>
+                  ) : (
+                    <Link
+                      href={`/cuenta/folios/${folio.folio}/costo/nuevo`}
+                      className="btn btn-sm btn-primary text-sm font-medium"
+                    >
+                      ➕ Nuevo costo
+                    </Link>
+                  )}
+
+                  {userid && (
+                    <button
+                      type="button"
+                      disabled={
+                        togglingFolioDisabledId === folio._id || !folio._id
+                      }
+                      onClick={() =>
+                        void handleSetFolioDisabled(folio, !folioIsDisabled)
+                      }
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                        folioIsDisabled
+                          ? "border-green-600 text-green-700 hover:bg-green-50"
+                          : "border-amber-600 text-amber-800 hover:bg-amber-50"
+                      }`}
+                    >
+                      {togglingFolioDisabledId === folio._id
+                        ? "…"
+                        : folioIsDisabled
+                          ? "Activar folio"
+                          : "Desactivar folio"}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -633,14 +721,23 @@ export default function FoliosPage() {
                                     onClick={(e) => e.stopPropagation()}
                                     className="z-50 w-52 rounded-xl border border-gray-200 bg-white overflow-hidden shadow-lg"
                                   >
-                                    <DropdownMenu.Item asChild>
-                                      <Link
-                                        href={`/cuenta/folios/${folio.folio}/costo/${serviceCost.no_service_cost}/nuevo`}
-                                        className="block px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                                    {folioIsDisabled ? (
+                                      <DropdownMenu.Item
+                                        disabled
+                                        className="px-4 py-2 text-sm"
                                       >
-                                        Duplicar
-                                      </Link>
-                                    </DropdownMenu.Item>
+                                        Duplicar (folio desactivado)
+                                      </DropdownMenu.Item>
+                                    ) : (
+                                      <DropdownMenu.Item asChild>
+                                        <Link
+                                          href={`/cuenta/folios/${folio.folio}/costo/${serviceCost.no_service_cost}/nuevo`}
+                                          className="block px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                                        >
+                                          Duplicar
+                                        </Link>
+                                      </DropdownMenu.Item>
+                                    )}
 
                                     <DropdownMenu.Item
                                       onSelect={() =>
@@ -654,23 +751,34 @@ export default function FoliosPage() {
                                       Descargar PDF
                                     </DropdownMenu.Item>
 
-                                    <DropdownMenu.Item asChild>
-                                      <Link
-                                        href={`/cuenta/folios/${folio.folio}/costo/${serviceCost.no_service_cost}/cotizacion/nuevo`}
-                                        className="block px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                                    {folioIsDisabled ? (
+                                      <DropdownMenu.Item
+                                        disabled
+                                        className="px-4 py-2 text-sm"
                                       >
-                                        Nueva cotización
-                                      </Link>
-                                    </DropdownMenu.Item>
+                                        Nueva cotización (folio desactivado)
+                                      </DropdownMenu.Item>
+                                    ) : (
+                                      <DropdownMenu.Item asChild>
+                                        <Link
+                                          href={`/cuenta/folios/${folio.folio}/costo/${serviceCost.no_service_cost}/cotizacion/nuevo`}
+                                          className="block px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                                        >
+                                          Nueva cotización
+                                        </Link>
+                                      </DropdownMenu.Item>
+                                    )}
                                     {!serviceCost?.active && (
                                       <DropdownMenu.Item
+                                        disabled={folioIsDisabled}
                                         onClick={() => {
+                                          if (folioIsDisabled) return;
                                           handleSetActiveCost(
                                             folio?.folio,
                                             serviceCost?.no_service_cost,
                                           );
                                         }}
-                                        className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                                        className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer data-[disabled]:opacity-50"
                                       >
                                         Activar costo
                                       </DropdownMenu.Item>
@@ -807,13 +915,15 @@ export default function FoliosPage() {
 
                                             {!quote?.active && (
                                               <DropdownMenu.Item
-                                                onClick={() =>
+                                                disabled={folioIsDisabled}
+                                                onClick={() => {
+                                                  if (folioIsDisabled) return;
                                                   handleSetActiveQuote(
                                                     folio?.folio,
                                                     quote?.no_quote,
-                                                  )
-                                                }
-                                                className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                                                  );
+                                                }}
+                                                className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer data-[disabled]:opacity-50"
                                               >
                                                 Activar
                                               </DropdownMenu.Item>

@@ -4,6 +4,8 @@ export interface FolioCollectionInterface {
   seller_userid: UserInterface;
   folio: string;
   service_cost: ServiceCostInterface[];
+  /** Si es true, el folio no admite altas (costos, cotizaciones, etc.) según el backend. */
+  disabled?: boolean;
   deleted?: boolean;
   created_at?: Date;
   updated_at?: Date;

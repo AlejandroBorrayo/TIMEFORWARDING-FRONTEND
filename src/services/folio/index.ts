@@ -180,6 +180,25 @@ export const SetQuoteActive = async (body: {
   return data;
 };
 
+export const SetFolioDisabled = async (body: {
+  folio: string;
+  disabled: boolean;
+}): Promise<FolioCollectionInterface> => {
+  const { data } = await axios.put(
+    `${NEXT_PUBLIC_API_URL}/folio/disabled`,
+    withCompanyId({
+      folio: body.folio.trim(),
+      disabled: body.disabled,
+    }),
+    {
+      headers: {
+        "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
+      },
+    }
+  );
+  return data;
+};
+
 export const SupplierHistory = async (
   supplierid: string
 ): Promise<SupplierHistoryItem[]> => {
