@@ -77,7 +77,7 @@ export default function QuoteCreatePage() {
       setLoadingServiceCost(true);
       const folio = await FindFolio(currentFolio);
       const cost_service = folio?.service_cost?.find(
-        (cost) => cost.no_service_cost === currentCost
+        (cost) => cost.no_service_cost === currentCost,
       );
       const hasItems = (items?.length || 0) > 0;
       const hasUSDItem = items?.some((item) => item?.currency === "USD");
@@ -87,8 +87,8 @@ export default function QuoteCreatePage() {
       const quoteCurrency = hasUSDItem
         ? "USD"
         : allItemsAreMXN
-        ? "MXN"
-        : currency;
+          ? "MXN"
+          : currency;
       const latestNotes = notesRef.current;
       const noteLines = latestNotes
         .map((n) => (n.note ?? "").trim())
@@ -126,15 +126,12 @@ export default function QuoteCreatePage() {
         new Promise((resolve) => setTimeout(resolve, ms));
       await sleep(4000);
       const find_service_cost = quote_create?.service_cost.find(
-        (service) => service.no_service_cost === currentCost
+        (service) => service.no_service_cost === currentCost,
       );
       router.push(
         `/cuenta/folios/${currentFolio}/costo/${
           find_service_cost?.no_service_cost
-        }/cotizacion/${
-          find_service_cost?.quotes?.[find_service_cost?.quotes.length - 1]
-            ?.no_quote
-        }`
+        }/cotizacion/${find_service_cost?.quotes?.[0]?.no_quote}`,
       );
     } catch (err) {
       console.error(err);
@@ -166,8 +163,8 @@ export default function QuoteCreatePage() {
               ...n,
               note: value,
             }
-          : n
-      )
+          : n,
+      ),
     );
   };
 
@@ -192,7 +189,7 @@ export default function QuoteCreatePage() {
         try {
           const folio = await FindFolio(currentFolio);
           const find_service_cost = folio?.service_cost.find(
-            (cost) => cost.no_service_cost === currentCost
+            (cost) => cost.no_service_cost === currentCost,
           );
           setCurrency(find_service_cost?.currency);
           setItems(find_service_cost?.items);
