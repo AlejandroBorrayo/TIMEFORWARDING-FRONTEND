@@ -11,7 +11,6 @@ import { QuoteDto } from "@/type/quote.dto";
 import { ContactInterface } from "@/type/customer.interface";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/toast";
-import { isValidMongoObjectId } from "@/app/utils";
 
 export default function QuoteCreatePage() {
   const router = useRouter();
@@ -76,19 +75,6 @@ export default function QuoteCreatePage() {
   const handleCreateQuote = async () => {
     try {
       setLoadingServiceCost(true);
-      const missingSupplier = items?.some(
-        (item) => !isValidMongoObjectId(item?.supplier?._id),
-      );
-      if (missingSupplier) {
-        setToast({
-          visible: true,
-          message:
-            "Cada concepto debe tener un proveedor válido. Selecciona uno en todas las filas o vuelve a elegirlo si acabas de crear uno.",
-          type: "error",
-        });
-        setLoadingServiceCost(false);
-        return;
-      }
       const folio = await FindFolio(currentFolio);
       const cost_service = folio?.service_cost?.find(
         (cost) => cost.no_service_cost === currentCost
