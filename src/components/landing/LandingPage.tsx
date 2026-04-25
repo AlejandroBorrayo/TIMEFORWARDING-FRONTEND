@@ -17,26 +17,73 @@ const jakarta = Plus_Jakarta_Sans({
   variable: "--font-landing",
 });
 
-const transportServices = [
+const LANDING_IMG_MARITIMO_SHIP =
+  "https://i.postimg.cc/rwpxyP0L/dendoktoor-container-ship-6631117.jpg";
+const LANDING_IMG_MARITIMO_PORT =
+  "https://i.postimg.cc/7PM23k07/yamu-jay-ai-generated-9087011.jpg";
+const LANDING_IMG_AEREO =
+  "https://i.postimg.cc/x1W8rxLX/tobiasrehbein-airplane-4974678.jpg";
+const LANDING_IMG_TERRESTRE =
+  "https://i.postimg.cc/B6CnKJkZ/tungart7-trucks-8656643.jpg";
+const LANDING_IMG_ALMACEN =
+  "https://i.postimg.cc/FKRMZNYS/pexels-ryank-27111449.jpg";
+
+/** Fondo del hero principal (impacto visual + coherencia con logística marítima). */
+const LANDING_HERO_BG = LANDING_IMG_MARITIMO_PORT;
+
+const transportServices: {
+  title: string;
+  description: string;
+  /** Imágenes de fondo: una franja por imagen; marítimo usa dos en panel dividido. */
+  backgrounds: { src: string; alt: string }[];
+}[] = [
   {
     title: "Transporte marítimo",
     description:
       "Coordinación de embarques, consolidación y contenedores completos con enfoque en rutas y tiempos competitivos.",
+    backgrounds: [
+      {
+        src: LANDING_IMG_MARITIMO_SHIP,
+        alt: "Buque portacontenedores en mar abierto bajo cielo despejado",
+      },
+      {
+        src: LANDING_IMG_MARITIMO_PORT,
+        alt: "Puerto marítimo con grúas y contenedores al atardecer",
+      },
+    ],
   },
   {
     title: "Transporte aéreo",
     description:
       "Opciones ágiles para cargas sensibles al tiempo, con selección de tarifas y conexiones adecuadas a tu mercancía.",
+    backgrounds: [
+      {
+        src: LANDING_IMG_AEREO,
+        alt: "Avión de carga en pista de aeropuerto al amanecer o atardecer",
+      },
+    ],
   },
   {
     title: "Transporte terrestre",
     description:
       "Desde un pallet hasta volúmenes mayores: enlaces confiables y visibilidad en el movimiento de tu carga.",
+    backgrounds: [
+      {
+        src: LANDING_IMG_TERRESTRE,
+        alt: "Camión articulado con contenedor en terminal logística",
+      },
+    ],
   },
   {
     title: "Valores agregados",
     description:
       "Servicios complementarios que fortalecen tu cadena: almacén, distribución, seguros y más, según tu operación.",
+    backgrounds: [
+      {
+        src: LANDING_IMG_ALMACEN,
+        alt: "Interior de almacén con racks, pallets y cajas embaladas",
+      },
+    ],
   },
 ];
 
@@ -113,28 +160,28 @@ export default function LandingPage({ whatsAppPhoneRaw }: LandingPageProps) {
               priority
             />
           </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-0.5 text-sm font-semibold text-slate-600">
+          <nav className="flex flex-wrap items-center justify-end gap-1 text-base font-semibold text-slate-600 sm:gap-1.5 sm:text-lg">
             <a
               href="#quienes-somos"
-              className="rounded-lg px-2.5 py-2 transition hover:bg-slate-100 hover:text-brand sm:px-3"
+              className="rounded-lg px-3 py-2.5 transition hover:bg-slate-100 hover:text-brand sm:px-4 sm:py-3"
             >
               Quiénes somos
             </a>
             <a
               href="#servicios"
-              className="rounded-lg px-2.5 py-2 transition hover:bg-slate-100 hover:text-brand sm:px-3"
+              className="rounded-lg px-3 py-2.5 transition hover:bg-slate-100 hover:text-brand sm:px-4 sm:py-3"
             >
               Servicios
             </a>
             <a
               href="#time-group"
-              className="rounded-lg px-2.5 py-2 transition hover:bg-slate-100 hover:text-brand sm:px-3"
+              className="rounded-lg px-3 py-2.5 transition hover:bg-slate-100 hover:text-brand sm:px-4 sm:py-3"
             >
               Time Group
             </a>
             <a
               href="#contacto"
-              className="rounded-lg px-2.5 py-2 transition hover:bg-slate-100 hover:text-brand sm:px-3"
+              className="rounded-lg px-3 py-2.5 transition hover:bg-slate-100 hover:text-brand sm:px-4 sm:py-3"
             >
               Contacto
             </a>
@@ -143,25 +190,39 @@ export default function LandingPage({ whatsAppPhoneRaw }: LandingPageProps) {
       </header>
 
       <main>
-        {/* Hero */}
-        <section className="relative overflow-hidden bg-brand text-white">
+        {/* Hero: imagen de fondo + capas para legibilidad */}
+        <section className="relative flex min-h-[min(100dvh,920px)] flex-col justify-center overflow-hidden text-white">
+          <div className="absolute inset-0">
+            <Image
+              src={LANDING_HERO_BG}
+              alt="Puerto y operaciones marítimas al atardecer"
+              fill
+              priority
+              className="object-cover object-[center_35%] sm:object-center"
+              sizes="100vw"
+            />
+          </div>
           <div
-            className="pointer-events-none absolute inset-0 opacity-40"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-slate-950/92 via-[#0c4a6e]/82 to-slate-900/55"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.35]"
             aria-hidden
             style={{
               backgroundImage:
-                "linear-gradient(135deg, #0c4a6e 0%, transparent 50%), radial-gradient(ellipse 80% 50% at 100% 0%, #38bdf8 0%, transparent 55%)",
+                "radial-gradient(ellipse 90% 60% at 20% 20%, rgba(56, 189, 248, 0.22), transparent 55%)",
             }}
           />
-          <div className="pointer-events-none absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M60%200H0v60%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-opacity%3D%22.04%22%2F%3E%3C%2Fsvg%3E')] opacity-60" />
-          <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-200/90 sm:text-sm">
+          <div className="pointer-events-none absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M60%200H0v60%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-opacity%3D%22.05%22%2F%3E%3C%2Fsvg%3E')] opacity-50" />
+          <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-200/95 sm:text-sm drop-shadow-sm">
               Logística internacional · México y el mundo
             </p>
-            <h1 className="mt-5 max-w-4xl text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="mt-5 max-w-4xl text-4xl font-bold leading-[1.08] tracking-tight drop-shadow-md sm:text-5xl lg:text-6xl">
               Especialistas en logística internacional
             </h1>
-            <p className="mt-8 max-w-2xl text-lg leading-relaxed text-slate-200 sm:text-xl">
+            <p className="mt-8 max-w-2xl text-lg leading-relaxed text-white/90 drop-shadow sm:text-xl">
               Como agente de carga, gestionamos y coordinamos cargas aéreas, marítimas y
               terrestres: desde un pallet hasta contenedores completos, eligiendo rutas, tarifas y
               proveedores para que tu mercancía llegue a tiempo y en forma.
@@ -169,13 +230,13 @@ export default function LandingPage({ whatsAppPhoneRaw }: LandingPageProps) {
             <div className="mt-12 flex flex-wrap gap-4">
               <a
                 href="#contacto"
-                className="inline-flex items-center justify-center rounded-xl bg-white px-7 py-3.5 text-base font-semibold text-brand shadow-lg shadow-black/20 transition hover:bg-sky-50"
+                className="inline-flex items-center justify-center rounded-xl bg-white px-7 py-3.5 text-base font-semibold text-brand shadow-lg shadow-black/25 transition hover:bg-sky-50"
               >
                 Hablemos de tu carga
               </a>
               <a
                 href="#servicios"
-                className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/5 px-7 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/10"
+                className="inline-flex items-center justify-center rounded-xl border border-white/35 bg-white/10 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-md transition hover:bg-white/15"
               >
                 Ver servicios
               </a>
@@ -234,11 +295,8 @@ export default function LandingPage({ whatsAppPhoneRaw }: LandingPageProps) {
           </div>
         </section>
 
-        {/* Servicios */}
-        <section
-          id="servicios"
-          className="scroll-mt-20 py-20 sm:py-24"
-        >
+        {/* Servicios: franjas a ancho completo con imagen de fondo */}
+        <section id="servicios" className="scroll-mt-20 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
               <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-brand">
@@ -252,19 +310,111 @@ export default function LandingPage({ whatsAppPhoneRaw }: LandingPageProps) {
                 modalidad.
               </p>
             </div>
-            <ul className="mt-14 grid gap-6 sm:grid-cols-2">
-              {transportServices.map((s) => (
-                <li
-                  key={s.title}
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-8 shadow-sm transition duration-300 hover:border-slate-300 hover:shadow-lg"
-                >
-                  <div className="absolute right-6 top-6 h-16 w-16 rounded-full bg-gradient-to-br from-slate-100 to-slate-50 opacity-80 transition group-hover:from-sky-50 group-hover:to-slate-100" />
-                  <h3 className="relative text-xl font-bold text-slate-900">{s.title}</h3>
-                  <p className="relative mt-4 leading-relaxed text-slate-600">{s.description}</p>
-                </li>
-              ))}
-            </ul>
           </div>
+
+          <ul className="mt-12 w-full space-y-0">
+            {transportServices.map((s, serviceIndex) => {
+              const n = s.backgrounds.length;
+              const isSplit = n >= 2;
+              const isPhotoBand = n === 1;
+              const isGradientOnly = n === 0;
+              const textOnRight = serviceIndex % 2 === 1;
+
+              return (
+                <li key={s.title} className="relative w-full overflow-hidden">
+                  {isGradientOnly ? (
+                    <div className="relative min-h-[260px] bg-gradient-to-br from-slate-900 via-brand to-slate-800">
+                      <div
+                        className="pointer-events-none absolute inset-0 opacity-30"
+                        aria-hidden
+                        style={{
+                          backgroundImage:
+                            "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12), transparent 45%)",
+                        }}
+                      />
+                      <div className="relative z-10 mx-auto flex min-h-[260px] max-w-6xl flex-col justify-center px-4 py-14 sm:px-6 lg:px-8">
+                        <h3 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                          {s.title}
+                        </h3>
+                        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-white/85 sm:text-xl">
+                          {s.description}
+                        </p>
+                      </div>
+                    </div>
+                  ) : isSplit ? (
+                    <div className="relative min-h-[min(72vw,420px)] sm:min-h-[380px] lg:min-h-[400px]">
+                      <div className="absolute inset-0 grid grid-cols-1 lg:grid-cols-2">
+                        {s.backgrounds.slice(0, 2).map((bg, idx) => (
+                          <div
+                            key={`${bg.src}-${idx}`}
+                            className="relative min-h-[220px] lg:min-h-0"
+                          >
+                            <Image
+                              src={bg.src}
+                              alt={bg.alt}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 1024px) 100vw, 50vw"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/88 via-slate-950/45 to-slate-950/25 lg:bg-gradient-to-r lg:from-slate-950/90 lg:via-slate-950/35 lg:to-slate-950/15"
+                        aria-hidden
+                      />
+                      <div
+                        className={`relative z-10 mx-auto flex min-h-[min(72vw,420px)] max-w-6xl flex-col justify-end px-4 py-12 sm:min-h-[380px] sm:px-6 sm:py-16 lg:min-h-[400px] lg:justify-center lg:py-20 ${
+                          textOnRight ? "lg:items-end lg:text-right" : ""
+                        }`}
+                      >
+                        <div className={textOnRight ? "lg:max-w-2xl" : "max-w-3xl"}>
+                          <h3 className="text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:text-4xl">
+                            {s.title}
+                          </h3>
+                          <p className="mt-5 text-lg leading-relaxed text-white/90 sm:text-xl">
+                            {s.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : isPhotoBand ? (
+                    <div className="relative min-h-[min(85vw,440px)] sm:min-h-[400px] lg:min-h-[420px]">
+                      <Image
+                        src={s.backgrounds[0].src}
+                        alt={s.backgrounds[0].alt}
+                        fill
+                        className="object-cover object-center"
+                        sizes="100vw"
+                      />
+                      <div
+                        className={
+                          textOnRight
+                            ? "pointer-events-none absolute inset-0 bg-gradient-to-l from-slate-950/20 via-slate-950/55 to-slate-950/88"
+                            : "pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/55 to-slate-950/20"
+                        }
+                        aria-hidden
+                      />
+                      <div
+                        className={`relative z-10 mx-auto flex min-h-[min(85vw,440px)] max-w-6xl flex-col justify-center px-4 py-14 sm:min-h-[400px] sm:px-6 sm:py-16 lg:min-h-[420px] lg:py-20 ${
+                          textOnRight ? "items-end text-right" : ""
+                        }`}
+                      >
+                        <div className={textOnRight ? "max-w-2xl" : "max-w-3xl"}>
+                          <h3 className="text-3xl font-bold tracking-tight text-white drop-shadow sm:text-4xl">
+                            {s.title}
+                          </h3>
+                          <p className="mt-5 text-lg leading-relaxed text-white/90 sm:text-xl">
+                            {s.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
         </section>
 
         {/* Time Group */}
