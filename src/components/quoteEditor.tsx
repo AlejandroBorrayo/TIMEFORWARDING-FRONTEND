@@ -7,7 +7,7 @@ import { Find as FindCustomer } from "../services/customer";
 import { FindAll as FindAllNotes } from "../services/note";
 import { Create as CreateCustomer } from "../services/customer";
 import { Update as UpdateCustomer } from "../services/customer";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConvertCurrency } from "../services/currency";
 import ModalCreateSupplier from "./createSupplierModal";
 import { SupplierCollectionInterface } from "@/type/supplier.interface";
@@ -20,6 +20,7 @@ import {
   isValidMongoObjectId,
   normalizeSupplierDocumentId,
 } from "@/app/utils";
+import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
 import ModalCrearCliente from "./createCustomerModal";
 import ModalCrearContacto from "./createContactModal";
 import { FindAll as FindAllTax } from "../services/tax";
@@ -67,8 +68,11 @@ export default function QuoteEditor({
   const taxModalRowIndexRef = useRef<number | null>(null);
   const [refreshSupplier, setRefreshSupplier] = useState(true);
   const [refreshTax, setRefreshTax] = useState(false);
-  const [showTotalUSD, setShowTotalUSD] = useState(false);
   const [date, setDate] = useState<string | null>(null);
+  /** Precio unitario en EUR solo en vista previa (sin `updateItem`). */
+  const [previewEurByIndex, setPreviewEurByIndex] = useState<
+    Record<number, number>
+  >({});
   const [total, setTotal] = useState(0);
   const [subtotal, setSubtotal] = useState(0);
   const [tax, setTax] = useState<{ name: string; amount: number }[]>([]);
@@ -122,26 +126,152 @@ export default function QuoteEditor({
     }).format(n);
   };
 
-  useEffect(() => {
-    const hasUSDItem = items.some((item) => item?.currency === "USD");
-    setShowTotalUSD(hasUSDItem);
+  /** Moneda del resumen (misma prioridad que subtotal/impuestos/total). Derivada de `items` para no desfasarse un render del estado. */
+  const summaryCurrency = items.some((it) => it?.currency === "USD")
+    ? "USD"
+    : items.some((it) => it?.currency === "EUR")
+      ? "EUR"
+      : currency;
+
+  const hasUsdLine = items.some((it) => it?.currency === "USD");
+  const hasEurLine = items.some((it) => it?.currency === "EUR");
+  const canMutateItems = typeof updateItem === "function";
+
+  const itemsEurFingerprint = useMemo(() => {
+    const list = Array.isArray(items) ? items : [];
+    return list
+      .map(
+        (it, idx) =>
+          `${idx}:${it?.currency ?? ""}:${it?.amount ?? ""}:${it?.quantity ?? ""}:${it?.eur_amount ?? ""}`,
+      )
+      .join("|");
   }, [items]);
 
-  useEffect(() => {
-    const impMap = new Map<string, number>();
-    items.map((i) => {
-      if (!i?.tax?.name || i.tax.name === "sin impuesto") return null;
-      const currentAmount = impMap.get(i.tax.name) || 0;
-      const taxAmount = Number(i?.tax?.amount || 0) / 100;
+  /** Precio unitario en USD y EUR (el API a veces omite `eur_amount`). */
+  const syncUsdEurFromUnitPrice = useCallback(
+    async (rowIndex: number, unitAmount: number, lineCurrency: string) => {
+      if (!canMutateItems) return;
+      const amount = Number(unitAmount);
+      if (!Number.isFinite(amount) || !lineCurrency) return;
 
-      if (showTotalUSD) {
-        impMap.set(
-          i.tax.name,
-          currentAmount + i.quantity * i.usd_amount * taxAmount,
-        );
-        return;
+      if (lineCurrency === "MXN") {
+        const resUsd = await ConvertCurrency(amount, "MXN", "USD");
+        if (resUsd?.rates?.["MXN"]) {
+          updateItem(rowIndex, "usd_amount", amount / resUsd.rates["MXN"]);
+        }
+        const resEur = await ConvertCurrency(amount, "MXN", "EUR");
+        if (resEur?.rates?.["MXN"]) {
+          updateItem(rowIndex, "eur_amount", amount / resEur.rates["MXN"]);
+        }
+      } else if (lineCurrency === "EUR") {
+        updateItem(rowIndex, "eur_amount", amount);
+        const resUsd = await ConvertCurrency(amount, "EUR", "USD");
+        if (resUsd?.rates?.["EUR"]) {
+          updateItem(rowIndex, "usd_amount", amount / resUsd.rates["EUR"]);
+        }
+      } else if (lineCurrency === "USD") {
+        updateItem(rowIndex, "usd_amount", amount);
+        const resEur = await ConvertCurrency(amount, "USD", "EUR");
+        if (resEur?.rates?.["USD"]) {
+          updateItem(rowIndex, "eur_amount", amount / resEur.rates["USD"]);
+        }
       }
-      impMap.set(i.tax.name, currentAmount + i.quantity * i.amount * taxAmount);
+    },
+    [canMutateItems, updateItem],
+  );
+
+  /** Rellenar `eur_amount` al cargar ítems del backend sin ese campo (solo modo edición). */
+  useEffect(() => {
+    if (!canMutateItems || !items?.length || !hasEurLine) return;
+
+    const needsHydration = (row: (typeof items)[0]) => {
+      const amt = Number(row?.amount);
+      if (!Number.isFinite(amt) || amt <= 0 || !row?.currency) return false;
+      const eur = Number(row.eur_amount);
+      if (row.currency === "EUR") {
+        return !Number.isFinite(eur) || eur !== amt;
+      }
+      return !Number.isFinite(eur) || eur === 0;
+    };
+
+    let cancelled = false;
+    (async () => {
+      for (let i = 0; i < items.length; i++) {
+        if (cancelled) return;
+        const row = items[i];
+        if (!needsHydration(row)) continue;
+        await syncUsdEurFromUnitPrice(i, Number(row.amount), row.currency);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canMutateItems, hasEurLine, itemsEurFingerprint, syncUsdEurFromUnitPrice]);
+
+  /** Vista previa sin `updateItem`: EUR por fila vía API (misma lógica que hidratar). */
+  useEffect(() => {
+    if (canMutateItems) {
+      setPreviewEurByIndex({});
+      return;
+    }
+    if (!items?.length || !hasEurLine) {
+      setPreviewEurByIndex({});
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const next: Record<number, number> = {};
+      for (let i = 0; i < items.length; i++) {
+        if (cancelled) return;
+        const row = items[i];
+        const amt = Number(row?.amount);
+        if (!Number.isFinite(amt) || amt <= 0 || !row?.currency) continue;
+
+        if (row.currency === "EUR") {
+          next[i] = amt;
+          continue;
+        }
+        if (row.currency === "MXN") {
+          const res = await ConvertCurrency(amt, "MXN", "EUR");
+          if (res?.rates?.["MXN"]) {
+            next[i] = amt / res.rates["MXN"];
+          }
+        } else if (row.currency === "USD") {
+          const res = await ConvertCurrency(amt, "USD", "EUR");
+          if (res?.rates?.["USD"]) {
+            next[i] = amt / res.rates["USD"];
+          }
+        }
+      }
+      if (!cancelled) setPreviewEurByIndex(next);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canMutateItems, hasEurLine, itemsEurFingerprint]);
+
+  useEffect(() => {
+    const eurUnitForRow = (row: (typeof items)[0], idx: number) =>
+      Number(row?.eur_amount ?? 0) ||
+      previewEurByIndex[idx] ||
+      (row?.currency === "EUR" ? Number(row?.amount ?? 0) : 0);
+
+    const unitForTax = (row: (typeof items)[0], idx: number) => {
+      if (hasUsdLine) return Number(row?.usd_amount ?? 0);
+      if (hasEurLine) return eurUnitForRow(row, idx);
+      return Number(row?.amount ?? 0);
+    };
+
+    const impMap = new Map<string, number>();
+    items.forEach((row, idx) => {
+      if (!row?.tax?.name || row.tax.name === "sin impuesto") return;
+      const currentAmount = impMap.get(row.tax.name) || 0;
+      const taxAmount = Number(row?.tax?.amount || 0) / 100;
+      const u = unitForTax(row, idx);
+      impMap.set(row.tax.name, currentAmount + row.quantity * u * taxAmount);
     });
     const imp = Array.from(impMap.entries()).map(([name, amount]) => ({
       name,
@@ -149,42 +279,65 @@ export default function QuoteEditor({
     }));
 
     const hasItems = (items?.length || 0) > 0;
-    const hasUSDItem = items.some((item) => item?.currency === "USD");
-    const allItemsAreMXN = hasItems
-      ? items.every((item) => item?.currency === "MXN")
-      : false;
-
-    if (hasUSDItem) {
-      setCurrency("USD");
-    } else if (allItemsAreMXN) {
-      setCurrency("MXN");
+    if (hasItems) {
+      const docCurrency = resolveDocumentCurrencyFromItems(items, currency);
+      if (docCurrency !== currency) {
+        setCurrency(docCurrency);
+      }
     }
-    if (showTotalUSD) {
-      setSubtotal(items.reduce((a, i) => a + i.quantity * i.usd_amount, 0));
+    if (hasUsdLine) {
+      setSubtotal(
+        items.reduce((a, i) => a + i.quantity * Number(i?.usd_amount ?? 0), 0),
+      );
       setTax(imp);
       setTotal(
         items.reduce((a, i) => {
+          const u = Number(i?.usd_amount ?? 0);
           const impuesto =
-            i.quantity * i.usd_amount * (Number(i?.tax?.amount || 0) / 100);
-          return a + i.quantity * i.usd_amount + impuesto;
+            i.quantity * u * (Number(i?.tax?.amount || 0) / 100);
+          return a + i.quantity * u + impuesto;
         }, 0),
       );
       return;
     }
 
-    if (!showTotalUSD) {
-      setSubtotal(items.reduce((a, i) => a + i.quantity * i.amount, 0));
+    if (hasEurLine) {
+      setSubtotal(
+        items.reduce(
+          (a, row, idx) => a + row.quantity * eurUnitForRow(row, idx),
+          0,
+        ),
+      );
       setTax(imp);
       setTotal(
-        items.reduce((a, i) => {
+        items.reduce((a, row, idx) => {
+          const u = eurUnitForRow(row, idx);
           const impuesto =
-            i.quantity * i.amount * (Number(i?.tax?.amount || 0) / 100);
-          return a + i.quantity * i.amount + impuesto;
+            row.quantity * u * (Number(row?.tax?.amount || 0) / 100);
+          return a + row.quantity * u + impuesto;
         }, 0),
       );
       return;
     }
-  }, [items, showTotalUSD, impuestos, setCurrency]);
+
+    setSubtotal(items.reduce((a, i) => a + i.quantity * i.amount, 0));
+    setTax(imp);
+    setTotal(
+      items.reduce((a, i) => {
+        const impuesto =
+          i.quantity * i.amount * (Number(i?.tax?.amount || 0) / 100);
+        return a + i.quantity * i.amount + impuesto;
+      }, 0),
+    );
+  }, [
+    items,
+    hasUsdLine,
+    hasEurLine,
+    impuestos,
+    setCurrency,
+    currency,
+    previewEurByIndex,
+  ]);
 
   const handleCreateSupplier = async (
     supplier: SupplierCollectionInterface,
@@ -229,48 +382,17 @@ export default function QuoteEditor({
 
   const handleChangeAmount = async (data: number, i: number) => {
     updateItem(i, "amount", data);
-    const findItem = items?.[i];
-    if (findItem?.currency === "MXN") {
-      const res = await ConvertCurrency(data, "MXN", "USD");
-      if (res?.rates) {
-        updateItem(i, "usd_amount", data / res?.rates?.["MXN"]);
-      }
+    const row = items?.[i];
+    if (row?.currency) {
+      await syncUsdEurFromUnitPrice(i, data, row.currency);
     }
-    if (findItem?.currency === "EUR") {
-      const res = await ConvertCurrency(data, "EUR", "USD");
-      if (res?.rates) {
-        updateItem(i, "usd_amount", data / res?.rates?.["EUR"]);
-      }
-    }
-    if (findItem?.currency === "USD") {
-      updateItem(i, "usd_amount", data);
-    }
-    return;
   };
 
   const handleChangeCurrency = async (data: string, i: number) => {
     updateItem(i, "currency", data);
-    if (data === "MXN") {
-      const findItem = items?.[i];
-      const res = await ConvertCurrency(findItem.amount, "MXN", "USD");
-      if (res?.rates) {
-        updateItem(i, "usd_amount", findItem.amount / res?.rates?.["MXN"]);
-      }
-    }
-
-    if (data === "EUR") {
-      const findItemEUR = items.some((item) => item?.currency === "USD");
-      if (findItemEUR) {
-        const findItem = items?.[i];
-        const res = await ConvertCurrency(findItem.amount, "EUR", "USD");
-        if (res?.rates) {
-          updateItem(i, "usd_amount", findItem.amount / res?.rates?.["EUR"]);
-        }
-      }
-    }
-    if (data === "USD") {
-      const findItem = items?.[i];
-      updateItem(i, "usd_amount", findItem?.amount);
+    const row = items?.[i];
+    if (row && data) {
+      await syncUsdEurFromUnitPrice(i, row.amount, data);
     }
   };
 
@@ -412,7 +534,8 @@ export default function QuoteEditor({
             <th className="p-2 text-center ">Cantidad</th>
             <th className="p-2 text-center ">Impuesto</th>
             <th className="p-3 text-center ">Total</th>
-            {showTotalUSD && <th className="p-3 text-center ">Total USD</th>}
+            {hasUsdLine && <th className="p-3 text-center ">Total USD</th>}
+            {hasEurLine && <th className="p-3 text-center ">Total EUR</th>}
             <th className="p-3 text-center"></th>
           </tr>
         </thead>
@@ -426,11 +549,18 @@ export default function QuoteEditor({
             const impuestoMonto = subtotal * (porcentaje / 100);
             const total = subtotal + impuestoMonto;
 
-            const usd_subtotal = it.quantity * it.usd_amount;
-
+            const usdUnit = Number(it?.usd_amount ?? 0);
+            const usd_subtotal = it.quantity * usdUnit;
             const usd_impuesto_monto = usd_subtotal * (porcentaje / 100);
-
             const usd_amount = usd_subtotal + usd_impuesto_monto;
+
+            const eurUnit =
+              Number(it?.eur_amount ?? 0) ||
+              previewEurByIndex[i] ||
+              (it?.currency === "EUR" ? Number(it?.amount ?? 0) : 0);
+            const eur_subtotal = it.quantity * eurUnit;
+            const eur_impuesto_monto = eur_subtotal * (porcentaje / 100);
+            const eurLineTotal = eur_subtotal + eur_impuesto_monto;
 
             return (
               <tr
@@ -642,9 +772,14 @@ export default function QuoteEditor({
                 <td className="p-3 text-center align-top font-semibold whitespace-nowrap">
                   {formatCurrency(total, it.currency)}
                 </td>
-                {showTotalUSD && (
+                {hasUsdLine && (
                   <td className="p-3 text-center align-top font-semibold whitespace-nowrap">
                     {formatCurrency(usd_amount, "USD")}
+                  </td>
+                )}
+                {hasEurLine && (
+                  <td className="p-3 text-center align-top font-semibold whitespace-nowrap">
+                    {formatCurrency(eurLineTotal, "EUR")}
                   </td>
                 )}
                 {mode !== "edit" && <td className="p-3"></td>}
@@ -679,7 +814,9 @@ export default function QuoteEditor({
         {/* Subtotal */}
         <div className="grid grid-cols-[140px_auto] gap-x-8 text-right">
           <span className="text-gray-600">Subtotal</span>
-          <span style={{ minWidth: "120px" }}>{formatCurrency(subtotal)}</span>
+          <span style={{ minWidth: "120px" }}>
+            {formatCurrency(subtotal, summaryCurrency)}
+          </span>
         </div>
 
         {/* Impuestos */}
@@ -692,7 +829,7 @@ export default function QuoteEditor({
             >
               <span className="text-gray-600">{imp.name}</span>
               <span style={{ minWidth: "120px" }}>
-                {formatCurrency(imp.amount)}
+                {formatCurrency(imp.amount, summaryCurrency)}
               </span>
             </div>
           );
@@ -702,7 +839,7 @@ export default function QuoteEditor({
         <div className="grid grid-cols-[140px_auto] gap-x-8 text-right pt-1 ">
           <span className="font-semibold text-lg">Total</span>
           <span style={{ minWidth: "120px" }} className="font-bold text-lg">
-            {formatCurrency(total)}
+            {formatCurrency(total, summaryCurrency)}
           </span>
         </div>
       </div>

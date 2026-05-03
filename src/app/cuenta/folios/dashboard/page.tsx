@@ -39,8 +39,12 @@ const formatMoney = (value: number, currency: string) => {
   }
 };
 
-const normalizeCurrency = (currency?: string) =>
-  currency?.toUpperCase() === "USD" ? "USD" : "MXN";
+const normalizeCurrency = (currency?: string) => {
+  const u = currency?.toUpperCase();
+  if (u === "USD") return "USD";
+  if (u === "EUR") return "EUR";
+  return "MXN";
+};
 
 const toDateInputValue = (date: Date) => {
   const year = date.getFullYear();
@@ -321,6 +325,13 @@ export default function FoliosDashboardPage() {
           sellerCommission: 0,
           utility: 0,
         },
+        EUR: {
+          costWithoutTax: 0,
+          saleWithoutTax: 0,
+          gp: 0,
+          sellerCommission: 0,
+          utility: 0,
+        },
       },
     );
 
@@ -339,6 +350,13 @@ export default function FoliosDashboardPage() {
         { name: "Comisión", value: totals.MXN.sellerCommission },
         { name: "Utilidad", value: totals.MXN.utility },
       ],
+      EUR: [
+        { name: "Costo s/IVA", value: totals.EUR.costWithoutTax },
+        { name: "Venta s/IVA", value: totals.EUR.saleWithoutTax },
+        { name: "GP", value: totals.EUR.gp },
+        { name: "Comisión", value: totals.EUR.sellerCommission },
+        { name: "Utilidad", value: totals.EUR.utility },
+      ],
     };
   }, [rows]);
   const showUsdChart = useMemo(
@@ -349,7 +367,12 @@ export default function FoliosDashboardPage() {
     () => rows.some((row) => normalizeCurrency(row.currency) === "MXN"),
     [rows],
   );
-  const hasBothCharts = showUsdChart && showMxnChart;
+  const showEurChart = useMemo(
+    () => rows.some((row) => normalizeCurrency(row.currency) === "EUR"),
+    [rows],
+  );
+  const multiCurrencyCharts =
+    [showUsdChart, showMxnChart, showEurChart].filter(Boolean).length > 1;
 
   if (!isAdmin) {
     return (
@@ -543,11 +566,11 @@ export default function FoliosDashboardPage() {
             Gráficas comparativas por moneda
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Visual rápido de montos sin IVA, GP y comisión en USD y MXN.
+            Visual rápido de montos sin IVA, GP y comisión en USD, MXN y EUR.
           </p>
 
           <div
-            className={`mt-4 ${hasBothCharts ? "grid grid-cols-1 xl:grid-cols-2 gap-6" : ""}`}
+            className={`mt-4 ${multiCurrencyCharts ? "grid grid-cols-1 xl:grid-cols-2 gap-6" : ""}`}
           >
             {showUsdChart && (
               <div>
@@ -596,6 +619,36 @@ export default function FoliosDashboardPage() {
                       <Tooltip
                         formatter={(value: number) =>
                           formatMoney(Number(value), "MXN")
+                        }
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill={BRAND_PRIMARY}
+                        radius={[6, 6, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {showEurChart && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Euros (EUR)
+                </p>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={chartDataByCurrency.EUR}
+                      margin={{ top: 12, right: 12, left: 12, bottom: 12 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip
+                        formatter={(value: number) =>
+                          formatMoney(Number(value), "EUR")
                         }
                       />
                       <Bar

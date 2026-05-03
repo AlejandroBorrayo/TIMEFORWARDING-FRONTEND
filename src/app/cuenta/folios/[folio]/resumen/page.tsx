@@ -30,8 +30,12 @@ const formatMoney = (value: number, currency: string) => {
   }
 };
 
-const normalizeCurrency = (currency?: string) =>
-  currency?.toUpperCase() === "USD" ? "USD" : "MXN";
+const normalizeCurrency = (currency?: string) => {
+  const u = currency?.toUpperCase();
+  if (u === "USD") return "USD";
+  if (u === "EUR") return "EUR";
+  return "MXN";
+};
 
 export default function FolioResumenPage() {
   const { folio } = useParams<{ folio: string }>();
@@ -118,7 +122,9 @@ export default function FolioResumenPage() {
 
   const showUsdChart = currency === "USD";
   const showMxnChart = currency === "MXN";
-  const hasBothCharts = showUsdChart && showMxnChart;
+  const showEurChart = currency === "EUR";
+  const multiCurrencyCharts =
+    [showUsdChart, showMxnChart, showEurChart].filter(Boolean).length > 1;
   const chartData = useMemo(
     () => [
       { name: "Costo s/IVA", value: financial.costWithoutTax },
@@ -264,10 +270,10 @@ export default function FolioResumenPage() {
           <div className="bg-white border border-gray-300 rounded-2xl p-6">
             <h2 className="text-lg font-semibold">Gráficas comparativas por moneda</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Visual rápido de montos sin IVA, GP y comisión en USD y MXN.
+              Visual rápido de montos sin IVA, GP y comisión en USD, MXN y EUR.
             </p>
 
-            <div className={`mt-5 ${hasBothCharts ? "grid grid-cols-1 xl:grid-cols-2 gap-6" : ""}`}>
+            <div className={`mt-5 ${multiCurrencyCharts ? "grid grid-cols-1 xl:grid-cols-2 gap-6" : ""}`}>
               {showUsdChart && (
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-2">Dólares (USD)</p>
@@ -295,6 +301,23 @@ export default function FolioResumenPage() {
                         <XAxis dataKey="name" />
                         <YAxis />
                         <Tooltip formatter={(value: number) => formatMoney(Number(value), "MXN")} />
+                        <Bar dataKey="value" fill={BRAND_PRIMARY} radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {showEurChart && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Euros (EUR)</p>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={{ top: 12, right: 12, left: 12, bottom: 12 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip formatter={(value: number) => formatMoney(Number(value), "EUR")} />
                         <Bar dataKey="value" fill={BRAND_PRIMARY} radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>

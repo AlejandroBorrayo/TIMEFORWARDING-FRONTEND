@@ -28,19 +28,30 @@ const SUGGEST_FOLIO_PER_PAGE = 500;
 /** Límite de seguridad por si el API devolviera totalpages incorrecto. */
 const SUGGEST_FOLIO_MAX_PAGES = 2000;
 
-/** Prefijo fijo del folio; el conteo numérico va después (TIME0001, TIME00000134, …). */
+/** Prefijo fijo del folio; el conteo numérico va después sin ceros a la izquierda (TIME1, TIME638, …). */
 const FOLIO_SLUG_PREFIX = "TIME";
-const FOLIO_SLUG_PAD = 4;
+
+/**
+ * Formato actual: TIME639 (el primer dígito del número no es 0).
+ * Folios antiguos TIME00653 cuentan como 653 y desplazaban el sugerido; se ignoran para el máximo
+ * si existe al menos un folio en formato sin cero inicial tras TIME.
+ */
+function isUnpaddedTimeSlug(folio: string): boolean {
+  return new RegExp(`^${FOLIO_SLUG_PREFIX}[1-9]\\d*$`, "i").test(
+    String(folio ?? "").trim(),
+  );
+}
 
 type SlugSeqAccumulator = {
-  maxSeq: number;
-  hasSlug: boolean;
-  maxDigitLen: number;
+  /** Máximo solo entre slugs TIME639 (no TIME00653). */
+  maxUnpadded: number;
+  hasUnpadded: boolean;
+  /** Máximo entre todos los TIME+dígitos (compatibilidad si solo hay legado). */
+  maxAll: number;
+  hasAny: boolean;
 };
 
-function parseSlugSequenceDetail(
-  folio: string,
-): { value: number; digitLen: number } | null {
+function parseSlugSequenceDetail(folio: string): { value: number } | null {
   const m = String(folio ?? "")
     .trim()
     .match(new RegExp(`^${FOLIO_SLUG_PREFIX}(\\d+)$`, "i"));
@@ -48,7 +59,7 @@ function parseSlugSequenceDetail(
   const digits = m[1];
   const n = parseInt(digits, 10);
   if (Number.isNaN(n)) return null;
-  return { value: n, digitLen: digits.length };
+  return { value: n };
 }
 
 function accumulateSlugSequences(
@@ -56,27 +67,28 @@ function accumulateSlugSequences(
   acc: SlugSeqAccumulator,
 ): void {
   for (const f of records) {
-    const d = parseSlugSequenceDetail(f.folio ?? "");
-    if (d) {
-      acc.hasSlug = true;
-      acc.maxSeq = Math.max(acc.maxSeq, d.value);
-      acc.maxDigitLen = Math.max(acc.maxDigitLen, d.digitLen);
+    if (f.disabled === true) continue;
+    const raw = f.folio ?? "";
+    const d = parseSlugSequenceDetail(raw);
+    if (!d) continue;
+    acc.hasAny = true;
+    acc.maxAll = Math.max(acc.maxAll, d.value);
+    if (isUnpaddedTimeSlug(raw)) {
+      acc.hasUnpadded = true;
+      acc.maxUnpadded = Math.max(acc.maxUnpadded, d.value);
     }
   }
 }
 
-/** Siguiente código: max secuencia numérica en TIME* + 1; padding al mayor ancho visto (mín. 4). */
+/** Siguiente código: prioriza folios TIME+número sin cero inicial; si no hay, usa todos los TIME*. */
 function formatNextSlugFromAccumulator(acc: SlugSeqAccumulator): string {
-  if (!acc.hasSlug) {
-    return `${FOLIO_SLUG_PREFIX}${String(1).padStart(FOLIO_SLUG_PAD, "0")}`;
+  if (acc.hasUnpadded) {
+    return `${FOLIO_SLUG_PREFIX}${acc.maxUnpadded + 1}`;
   }
-  const next = acc.maxSeq + 1;
-  const pad = Math.max(
-    FOLIO_SLUG_PAD,
-    acc.maxDigitLen,
-    String(next).length,
-  );
-  return `${FOLIO_SLUG_PREFIX}${String(next).padStart(pad, "0")}`;
+  if (acc.hasAny) {
+    return `${FOLIO_SLUG_PREFIX}${acc.maxAll + 1}`;
+  }
+  return `${FOLIO_SLUG_PREFIX}1`;
 }
 
 export default function FoliosPage() {
@@ -226,14 +238,13 @@ export default function FoliosPage() {
     setPreparingSuggestedFolio(true);
     setSuggestedFolio("");
     const acc: SlugSeqAccumulator = {
-      maxSeq: 0,
-      hasSlug: false,
-      maxDigitLen: 0,
+      maxUnpadded: 0,
+      hasUnpadded: false,
+      maxAll: 0,
+      hasAny: false,
     };
     if (!is_admin && !userid) {
-      setSuggestedFolio(
-        `${FOLIO_SLUG_PREFIX}${String(1).padStart(FOLIO_SLUG_PAD, "0")}`,
-      );
+      setSuggestedFolio(`${FOLIO_SLUG_PREFIX}1`);
       setPreparingSuggestedFolio(false);
       return;
     }
@@ -254,10 +265,10 @@ export default function FoliosPage() {
 
       setSuggestedFolio(formatNextSlugFromAccumulator(acc));
     } catch {
-      setSuggestedFolio(`${FOLIO_SLUG_PREFIX}${String(1).padStart(FOLIO_SLUG_PAD, "0")}`);
+      setSuggestedFolio(`${FOLIO_SLUG_PREFIX}1`);
       setToast({
         visible: true,
-        message: `No se pudo calcular el folio sugerido; se usará ${FOLIO_SLUG_PREFIX}${String(1).padStart(FOLIO_SLUG_PAD, "0")}.`,
+        message: `No se pudo calcular el folio sugerido; se usará ${FOLIO_SLUG_PREFIX}1.`,
         type: "error",
       });
     } finally {
@@ -1013,8 +1024,8 @@ export default function FoliosPage() {
               </h3>
               <p className="text-sm text-gray-600">
                 Se creará un folio <strong>sin costo de servicio</strong>. El
-                siguiente identificador se propone por defecto; puedes
-                modificarlo manualmente en el campo de abajo.
+                siguiente identificador se calcula en base a tus folios activos
+                (sin ceros a la izquierda) y no se puede editar.
               </p>
               {!userid && (
                 <p className="text-sm text-amber-700">
@@ -1026,15 +1037,15 @@ export default function FoliosPage() {
               ) : (
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-gray-700">
-                    Slug del folio (ej. {FOLIO_SLUG_PREFIX}
-                    {String(1).padStart(FOLIO_SLUG_PAD, "0")})
+                    Folio a crear (ej. {FOLIO_SLUG_PREFIX}638)
                   </label>
                   <input
                     type="text"
                     value={suggestedFolio}
-                    onChange={(e) => setSuggestedFolio(e.target.value)}
+                    readOnly
+                    aria-readonly="true"
                     disabled={creatingFolio}
-                    className="px-4 py-2 border border-gray-300 rounded-lg w-full font-mono"
+                    className="px-4 py-2 border border-gray-200 rounded-lg w-full font-mono bg-gray-50 text-gray-800 cursor-not-allowed"
                   />
                 </div>
               )}

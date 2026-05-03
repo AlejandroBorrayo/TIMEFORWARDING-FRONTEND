@@ -11,6 +11,20 @@ import { CustomerInterface } from "@/type/customer.interface";
 import type { QuoteByCustomerItem } from "@/type/folio.interface";
 import { formatDateDMY } from "@/app/utils";
 
+const formatMoney = (value: number, currency: string) => {
+  const n = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  try {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return `${currency} ${n.toFixed(2)}`;
+  }
+};
+
 export default function CustomerDashboardPage() {
   const params = useParams();
   const router = useRouter();
@@ -205,8 +219,10 @@ export default function CustomerDashboardPage() {
                             Total
                           </span>
                           <span className="text-base font-bold text-green-600">
-                            {entry.quote.currency}{" "}
-                            {entry.quote.total?.toFixed(2)}
+                            {formatMoney(
+                              Number(entry.quote.total ?? 0),
+                              entry.quote.currency || "MXN",
+                            )}
                           </span>
                         </div>
 
@@ -217,12 +233,18 @@ export default function CustomerDashboardPage() {
                           {entry.quote.items?.length || 0} item(s)
                         </span>
                         <span>
-                          Subtotal: {entry.quote.currency}{" "}
-                          {entry.quote.subtotal?.toFixed(2)}
+                          Subtotal:{" "}
+                          {formatMoney(
+                            Number(entry.quote.subtotal ?? 0),
+                            entry.quote.currency || "MXN",
+                          )}
                         </span>
                         <span>
-                          Impuesto: {entry.quote.currency}{" "}
-                          {entry.quote.tax?.toFixed(2)}
+                          Impuesto:{" "}
+                          {formatMoney(
+                            Number(entry.quote.tax ?? 0),
+                            entry.quote.currency || "MXN",
+                          )}
                         </span>
                       </div>
 

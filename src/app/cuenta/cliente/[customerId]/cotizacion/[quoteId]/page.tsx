@@ -27,6 +27,20 @@ import ModalCustomerHistory from "@/components/customerHistoryModal";
 
 const COLORS = ["#16a34a", "#f59e0b"];
 
+const formatMoney = (value: number, currency: string) => {
+  const n = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  try {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return `${currency} ${n.toFixed(2)}`;
+  }
+};
+
 export default function QuoteDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -195,19 +209,25 @@ export default function QuoteDetailPage() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Subtotal</span>
                 <span className="font-medium">
-                  {quoteCurrency} ${entry.quote.subtotal?.toFixed(2)}
+                  {formatMoney(
+                    Number(entry.quote.subtotal ?? 0),
+                    quoteCurrency,
+                  )}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Impuesto</span>
                 <span className="font-medium">
-                  {quoteCurrency} ${entry.quote.tax?.toFixed(2)}
+                  {formatMoney(
+                    Number(entry.quote.tax ?? 0),
+                    quoteCurrency,
+                  )}
                 </span>
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span className="text-gray-700 font-semibold">Total</span>
                 <span className="font-bold text-green-600">
-                  {quoteCurrency} ${quoteTotal.toFixed(2)}
+                  {formatMoney(quoteTotal, quoteCurrency)}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -327,10 +347,16 @@ export default function QuoteDetailPage() {
                   </td>
                   <td className="px-4 py-3">{item.quantity}</td>
                   <td className="px-4 py-3">
-                    {item.currency} ${item.amount?.toFixed(2)}
+                    {formatMoney(
+                      Number(item.amount ?? 0),
+                      item.currency || quoteCurrency,
+                    )}
                   </td>
                   <td className="px-4 py-3 font-medium">
-                    {item.currency} ${item.total?.toFixed(2)}
+                    {formatMoney(
+                      Number(item.total ?? 0),
+                      item.currency || quoteCurrency,
+                    )}
                   </td>
                 </tr>
               ))}

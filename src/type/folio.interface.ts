@@ -35,6 +35,8 @@ export interface ItemInterface {
   description?: string;
   amount: number;
   usd_amount: number;
+  /** Precio unitario equivalente en EUR (columna Total EUR). */
+  eur_amount?: number;
   currency: string;
   total:number;
   quantity: number;

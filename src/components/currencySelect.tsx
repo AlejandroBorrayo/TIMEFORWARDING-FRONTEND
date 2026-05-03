@@ -20,8 +20,18 @@ export default function CurrencySelect({
   index:number
 
 }) {
+  const previewLabel: Record<string, string> = {
+    MXN: "🇲🇽 MXN",
+    USD: "🇺🇸 USD",
+    EUR: "🇪🇺 EUR",
+  };
+
   if (mode === "preview") {
-   return <p className="font-semibold">{it?.currency === "USD" ? "🇺🇸 USD" : "🇲🇽 MXN"}</p>;
+    return (
+      <p className="font-semibold">
+        {previewLabel[it?.currency] ?? it?.currency ?? "—"}
+      </p>
+    );
   }
 
   return (
@@ -80,6 +90,20 @@ hover:bg-gray-100 focus:bg-gray-100 focus:outline-none
 "
             >
               <Select.ItemText>🇺🇸 USD</Select.ItemText>
+              <Select.ItemIndicator className="absolute left-2">
+                <CheckIcon className="w-3 h-3 text-gray-500" />
+              </Select.ItemIndicator>
+            </Select.Item>
+
+            <Select.Item
+              value="EUR"
+              className="
+relative flex items-center gap-2 px-8 py-2 text-sm rounded-md
+cursor-pointer select-none
+hover:bg-gray-100 focus:bg-gray-100 focus:outline-none
+"
+            >
+              <Select.ItemText>🇪🇺 EUR</Select.ItemText>
               <Select.ItemIndicator className="absolute left-2">
                 <CheckIcon className="w-3 h-3 text-gray-500" />
               </Select.ItemIndicator>

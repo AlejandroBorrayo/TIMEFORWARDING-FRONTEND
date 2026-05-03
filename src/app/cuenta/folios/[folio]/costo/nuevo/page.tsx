@@ -8,6 +8,7 @@ import { useAuth } from "@/components/authProvider";
 import { FolioDtoInterface } from "@/type/folio.dto";
 import { Toast } from "@/components/toast";
 import { isValidMongoObjectId } from "@/app/utils";
+import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
 
 export default function QuoteCreatePage() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function QuoteCreatePage() {
       description?: string;
       amount: number;
       usd_amount: number;
+      eur_amount: number;
       currency: string;
       quantity: number;
       tax: { name: string; amount: number; _id?: string };
@@ -48,6 +50,7 @@ export default function QuoteCreatePage() {
       amount: 0,
       currency: "MXN",
       usd_amount: 0,
+      eur_amount: 0,
       supplier: { name: "", _id: "" },
       tax: { name: "sin impuesto", amount: 0 },
     },
@@ -61,6 +64,7 @@ export default function QuoteCreatePage() {
         quantity: 1,
         currency: "MXN",
         usd_amount: 0,
+        eur_amount: 0,
         amount: 0,
         supplier: { name: "", _id: "" },
         tax: { name: "sin impuesto", amount: 0 },
@@ -100,16 +104,10 @@ export default function QuoteCreatePage() {
         });
         return;
       }
-      const hasItems = (items?.length || 0) > 0;
-      const hasUSDItem = items?.some((item) => item?.currency === "USD");
-      const allItemsAreMXN = hasItems
-        ? items.every((item) => item?.currency === "MXN")
-        : false;
-      const serviceCostCurrency = hasUSDItem
-        ? "USD"
-        : allItemsAreMXN
-        ? "MXN"
-        : currency;
+      const serviceCostCurrency = resolveDocumentCurrencyFromItems(
+        items,
+        currency,
+      );
 
       const serviceCosteData: FolioDtoInterface = {
         seller_userid: userid,
@@ -122,6 +120,7 @@ export default function QuoteCreatePage() {
             description: item.description,
             amount: item.amount,
             usd_amount: item.usd_amount,
+            eur_amount: Number(item.eur_amount ?? 0),
             quantity: item.quantity,
             tax: item.tax,
             supplier_id: item.supplier?._id || "",

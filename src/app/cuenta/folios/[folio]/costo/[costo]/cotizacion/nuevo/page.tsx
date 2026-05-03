@@ -11,6 +11,7 @@ import { QuoteDto } from "@/type/quote.dto";
 import { ContactInterface } from "@/type/customer.interface";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/toast";
+import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
 
 export default function QuoteCreatePage() {
   const router = useRouter();
@@ -48,6 +49,7 @@ export default function QuoteCreatePage() {
         quantity: 1,
         currency: "MXN",
         usd_amount: 0,
+        eur_amount: 0,
         amount: 0,
         supplier: { name: "", _id: "" },
         tax: { name: "sin impuesto", amount: 0 },
@@ -79,16 +81,7 @@ export default function QuoteCreatePage() {
       const cost_service = folio?.service_cost?.find(
         (cost) => cost.no_service_cost === currentCost,
       );
-      const hasItems = (items?.length || 0) > 0;
-      const hasUSDItem = items?.some((item) => item?.currency === "USD");
-      const allItemsAreMXN = hasItems
-        ? items.every((item) => item?.currency === "MXN")
-        : false;
-      const quoteCurrency = hasUSDItem
-        ? "USD"
-        : allItemsAreMXN
-          ? "MXN"
-          : currency;
+      const quoteCurrency = resolveDocumentCurrencyFromItems(items, currency);
       const latestNotes = notesRef.current;
       const noteLines = latestNotes
         .map((n) => (n.note ?? "").trim())
@@ -109,6 +102,7 @@ export default function QuoteCreatePage() {
             description: item.description,
             amount: item.amount,
             usd_amount: item.usd_amount,
+            eur_amount: Number(item.eur_amount ?? 0),
             quantity: item.quantity,
             tax: item.tax,
             supplier_id: item.supplier?._id || "",

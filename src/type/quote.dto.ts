@@ -9,6 +9,7 @@ export interface Item {
   description?: string;
   amount: number;
   usd_amount: number;
+  eur_amount?: number;
   quantity: number;
   tax: Tax;
   supplier_id: string;
