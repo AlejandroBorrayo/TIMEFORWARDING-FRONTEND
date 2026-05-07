@@ -16,6 +16,8 @@ export interface Item {
 }
 
 export interface QuoteDto {
+  logo_url:string;
+  company_name:string;
   seller_userid: string;
   customer_id: string;
   contact_id: string;

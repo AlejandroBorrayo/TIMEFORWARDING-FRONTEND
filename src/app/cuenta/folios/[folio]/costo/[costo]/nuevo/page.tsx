@@ -12,6 +12,10 @@ import { FolioDtoInterface } from "@/type/folio.dto";
 import { Toast } from "@/components/toast";
 import { isValidMongoObjectId } from "@/app/utils";
 import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
+import { useSelectedCompany } from "@/context/selectedCompanyContext";
+
+const DEFAULT_QUOTE_LOGO_URL =
+  "https://i.postimg.cc/tRx2S91P/Captura-de-pantalla-2025-12-05-a-la(s)-3-46-29-p-m.png";
 
 export default function QuoteCreatePage() {
   const params = useParams();
@@ -19,6 +23,7 @@ export default function QuoteCreatePage() {
   const no_cost = params.costo as string;
   const currentCost = (Number(no_cost) + 1).toString();
   const { session } = useAuth();
+  const { activeCompany } = useSelectedCompany();
   const userid = session?.user?.sub;
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [loadingQuote, setLoadingServiceCost] = useState(false);
@@ -111,7 +116,13 @@ export default function QuoteCreatePage() {
         currency,
       );
 
+      const logo_url =
+        activeCompany?.logo?.trim() || DEFAULT_QUOTE_LOGO_URL;
+      const company_name = activeCompany?.name?.trim() || "";
+
       const serviceCosteData: FolioDtoInterface = {
+        logo_url,
+        company_name,
         seller_userid: userid,
         current_folio: currentFolio,
         currency: serviceCostCurrency,

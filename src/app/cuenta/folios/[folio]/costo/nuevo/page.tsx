@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import { motion } from "framer-motion";
 import QuoteEditor from "./../../../../../../components/quoteEditor";
 import {  useRouter, useParams } from "next/navigation";
@@ -9,12 +9,17 @@ import { FolioDtoInterface } from "@/type/folio.dto";
 import { Toast } from "@/components/toast";
 import { isValidMongoObjectId } from "@/app/utils";
 import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
+import { useSelectedCompany } from "@/context/selectedCompanyContext";
+
+const DEFAULT_QUOTE_LOGO_URL =
+  "https://i.postimg.cc/tRx2S91P/Captura-de-pantalla-2025-12-05-a-la(s)-3-46-29-p-m.png";
 
 export default function QuoteCreatePage() {
   const router = useRouter();
   const params = useParams();
   const currentFolio = params.folio as string;
   const { session } = useAuth();
+  const { activeCompany } = useSelectedCompany();
   const userid = session?.user?.sub;
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [loadingQuote, setLoadingServiceCost] = useState(false);
@@ -109,9 +114,15 @@ export default function QuoteCreatePage() {
         currency,
       );
 
+      const logoUrl =
+        activeCompany?.logo?.trim() || DEFAULT_QUOTE_LOGO_URL;
+      const company_name = activeCompany?.name?.trim() || "";
+
       const serviceCosteData: FolioDtoInterface = {
         seller_userid: userid,
         current_folio: currentFolio,
+        company_name,
+        logo_url: logoUrl,
         currency: serviceCostCurrency,
         items: items?.map((item) => {
           return {

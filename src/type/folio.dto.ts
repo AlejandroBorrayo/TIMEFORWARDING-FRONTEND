@@ -18,6 +18,8 @@ export interface Item {
 export interface FolioDtoInterface {
   seller_userid: string;
   items: Item[];
+  logo_url:string;
+  company_name:string;
   currency?: string;
   current_folio?: string;
 }

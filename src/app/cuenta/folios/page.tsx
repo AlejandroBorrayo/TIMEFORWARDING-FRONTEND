@@ -21,6 +21,7 @@ import { useAuth } from "@/components/authProvider";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Toast } from "@/components/toast";
+import { useSelectedCompany } from "@/context/selectedCompanyContext";
 
 const PAGE_SIZE = 5;
 /** Tamaño de página al barrer todos los folios para calcular el siguiente código. */
@@ -97,6 +98,7 @@ export default function FoliosPage() {
   const { session } = useAuth();
   const userid = session?.user?.sub;
   const is_admin = session?.user?.role === "admin";
+  const { activeCompany } = useSelectedCompany();
   const [folioSearch, setFolioSearch] = useState(
     searchParams.get("folio") ?? "",
   );
@@ -284,6 +286,7 @@ export default function FoliosPage() {
       await CreateFolioWithoutCost({
         seller_userid: userid,
         folio,
+        company_name: activeCompany?.name?.trim() || "",
       });
       setToast({
         visible: true,

@@ -120,6 +120,7 @@ export const Create = async (
 export const CreateFolioWithoutCost = async (body: {
   seller_userid: string;
   folio: string;
+  company_name?: string;
 }): Promise<FolioCollectionInterface> => {
   const company_id = getStoredCompanyId();
   if (!company_id) {
@@ -131,6 +132,9 @@ export const CreateFolioWithoutCost = async (body: {
       seller_userid: body.seller_userid,
       company_id,
       folio: body.folio.trim(),
+      ...(body.company_name?.trim()
+        ? { company_name: body.company_name.trim() }
+        : {}),
     },
     {
       headers: {

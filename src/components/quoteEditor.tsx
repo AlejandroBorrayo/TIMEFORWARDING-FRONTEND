@@ -1,3 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import SupplierSelect from "./supplierSelect";
 import EditableField from "./editableField";
@@ -8,7 +11,12 @@ import { FindAll as FindAllNotes } from "../services/note";
 import { Create as CreateCustomer } from "../services/customer";
 import { Update as UpdateCustomer } from "../services/customer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ConvertCurrency } from "../services/currency";
+import {
+  ConvertCurrency,
+  convertAmountWithUsdBaseRates,
+  getUsdBaseRatesForDocumentItems,
+  type RatesPayload,
+} from "../services/currency";
 import ModalCreateSupplier from "./createSupplierModal";
 import { SupplierCollectionInterface } from "@/type/supplier.interface";
 import CustomerSelect from "./customers";
@@ -25,6 +33,36 @@ import ModalCrearCliente from "./createCustomerModal";
 import ModalCrearContacto from "./createContactModal";
 import { FindAll as FindAllTax } from "../services/tax";
 import TaxSelect from "./taxes";
+
+/** Evita `setState` en bucle cuando la vista previa FX no cambió (misma ref si los valores son equivalentes). */
+function fxPreviewMapsEqual(
+  a: Record<number, number>,
+  b: Record<number, number>,
+): boolean {
+  const keys = new Set(
+    [...Object.keys(a), ...Object.keys(b)].map((k) => Number(k)),
+  );
+  for (const k of keys) {
+    const av = a[k];
+    const bv = b[k];
+    if (av === undefined && bv === undefined) continue;
+    if (av === undefined || bv === undefined) return false;
+    const tol = 1e-5 * Math.max(1, Math.abs(av), Math.abs(bv));
+    if (Math.abs(av - bv) > tol) return false;
+  }
+  return true;
+}
+
+/** Moneda de línea (API / selects pueden mandar distinto casing). */
+function normalizeLineCurrency(c: unknown): string {
+  if (typeof c !== "string") return "";
+  return c.trim().toUpperCase();
+}
+
+import { useSelectedCompany } from "@/context/selectedCompanyContext";
+
+const DEFAULT_QUOTE_LOGO_URL =
+  "https://i.postimg.cc/tRx2S91P/Captura-de-pantalla-2025-12-05-a-la(s)-3-46-29-p-m.png";
 
 type QuoteEditorProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- props legacy del editor
@@ -56,6 +94,12 @@ export default function QuoteEditor({
   contact,
   setContact,
 }: QuoteEditorProps) {
+  const { activeCompany } = useSelectedCompany();
+  const quoteLogoSrc = activeCompany?.logo?.trim() || DEFAULT_QUOTE_LOGO_URL;
+  const quoteLogoAlt = activeCompany?.name
+    ? `Logo ${activeCompany.name}`
+    : "TimeForwarding Logo";
+
   const [openContactModal, setOpenContactModal] = useState(false);
   const [openNewCustomer, setOpenNewCustomer] = useState(false);
   const [refreshCustomers, setRefreshCustomers] = useState(true);
@@ -69,10 +113,16 @@ export default function QuoteEditor({
   const [refreshSupplier, setRefreshSupplier] = useState(true);
   const [refreshTax, setRefreshTax] = useState(false);
   const [date, setDate] = useState<string | null>(null);
-  /** Precio unitario en EUR solo en vista previa (sin `updateItem`). */
+  /** Precio unitario en EUR / USD vía API cuando falta `eur_amount` / `usd_amount`. */
   const [previewEurByIndex, setPreviewEurByIndex] = useState<
     Record<number, number>
   >({});
+  const [previewUsdByIndex, setPreviewUsdByIndex] = useState<
+    Record<number, number>
+  >({});
+  /** Tasas para convertir el total nativo de cada línea a USD (misma base que la columna Total). */
+  const [docUsdRatesPayload, setDocUsdRatesPayload] =
+    useState<RatesPayload | null>(null);
   const [total, setTotal] = useState(0);
   const [subtotal, setSubtotal] = useState(0);
   const [tax, setTax] = useState<{ name: string; amount: number }[]>([]);
@@ -127,54 +177,78 @@ export default function QuoteEditor({
   };
 
   /** Moneda del resumen (misma prioridad que subtotal/impuestos/total). Derivada de `items` para no desfasarse un render del estado. */
-  const summaryCurrency = items.some((it) => it?.currency === "USD")
+  const summaryCurrency = items.some(
+    (it) => normalizeLineCurrency(it?.currency) === "USD",
+  )
     ? "USD"
-    : items.some((it) => it?.currency === "EUR")
+    : items.some((it) => normalizeLineCurrency(it?.currency) === "EUR")
       ? "EUR"
       : currency;
 
-  const hasUsdLine = items.some((it) => it?.currency === "USD");
-  const hasEurLine = items.some((it) => it?.currency === "EUR");
+  const hasUsdLine = items.some(
+    (it) => normalizeLineCurrency(it?.currency) === "USD",
+  );
+  const hasEurLine = items.some(
+    (it) => normalizeLineCurrency(it?.currency) === "EUR",
+  );
+  /** Si hay USD y EUR en el mismo documento, solo se muestra la columna en USD. */
+  const showEurColumn = hasEurLine && !hasUsdLine;
   const canMutateItems = typeof updateItem === "function";
 
-  const itemsEurFingerprint = useMemo(() => {
+  const itemsFxFingerprint = useMemo(() => {
     const list = Array.isArray(items) ? items : [];
     return list
       .map(
         (it, idx) =>
-          `${idx}:${it?.currency ?? ""}:${it?.amount ?? ""}:${it?.quantity ?? ""}:${it?.eur_amount ?? ""}`,
+          `${idx}:${it?.currency ?? ""}:${it?.amount ?? ""}:${it?.quantity ?? ""}:${it?.eur_amount ?? ""}:${it?.usd_amount ?? ""}`,
       )
       .join("|");
   }, [items]);
+
+  useEffect(() => {
+    if (!hasUsdLine || !items?.length) {
+      setDocUsdRatesPayload(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getUsdBaseRatesForDocumentItems(items);
+        if (!cancelled) setDocUsdRatesPayload(data);
+      } catch {
+        if (!cancelled) setDocUsdRatesPayload(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasUsdLine, itemsFxFingerprint]);
 
   /** Precio unitario en USD y EUR (el API a veces omite `eur_amount`). */
   const syncUsdEurFromUnitPrice = useCallback(
     async (rowIndex: number, unitAmount: number, lineCurrency: string) => {
       if (!canMutateItems) return;
       const amount = Number(unitAmount);
-      if (!Number.isFinite(amount) || !lineCurrency) return;
+      const ccy = normalizeLineCurrency(lineCurrency);
+      if (!Number.isFinite(amount) || !ccy) return;
 
-      if (lineCurrency === "MXN") {
+      if (ccy === "MXN") {
         const resUsd = await ConvertCurrency(amount, "MXN", "USD");
-        if (resUsd?.rates?.["MXN"]) {
-          updateItem(rowIndex, "usd_amount", amount / resUsd.rates["MXN"]);
-        }
+        const usd = convertAmountWithUsdBaseRates(amount, "MXN", "USD", resUsd);
+        if (usd != null) updateItem(rowIndex, "usd_amount", usd);
         const resEur = await ConvertCurrency(amount, "MXN", "EUR");
-        if (resEur?.rates?.["MXN"]) {
-          updateItem(rowIndex, "eur_amount", amount / resEur.rates["MXN"]);
-        }
-      } else if (lineCurrency === "EUR") {
+        const eur = convertAmountWithUsdBaseRates(amount, "MXN", "EUR", resEur);
+        if (eur != null) updateItem(rowIndex, "eur_amount", eur);
+      } else if (ccy === "EUR") {
         updateItem(rowIndex, "eur_amount", amount);
         const resUsd = await ConvertCurrency(amount, "EUR", "USD");
-        if (resUsd?.rates?.["EUR"]) {
-          updateItem(rowIndex, "usd_amount", amount / resUsd.rates["EUR"]);
-        }
-      } else if (lineCurrency === "USD") {
+        const usd = convertAmountWithUsdBaseRates(amount, "EUR", "USD", resUsd);
+        if (usd != null) updateItem(rowIndex, "usd_amount", usd);
+      } else if (ccy === "USD") {
         updateItem(rowIndex, "usd_amount", amount);
         const resEur = await ConvertCurrency(amount, "USD", "EUR");
-        if (resEur?.rates?.["USD"]) {
-          updateItem(rowIndex, "eur_amount", amount / resEur.rates["USD"]);
-        }
+        const eur = convertAmountWithUsdBaseRates(amount, "USD", "EUR", resEur);
+        if (eur != null) updateItem(rowIndex, "eur_amount", eur);
       }
     },
     [canMutateItems, updateItem],
@@ -182,13 +256,14 @@ export default function QuoteEditor({
 
   /** Rellenar `eur_amount` al cargar ítems del backend sin ese campo (solo modo edición). */
   useEffect(() => {
-    if (!canMutateItems || !items?.length || !hasEurLine) return;
+    if (!canMutateItems || !items?.length || !showEurColumn) return;
 
     const needsHydration = (row: (typeof items)[0]) => {
       const amt = Number(row?.amount);
-      if (!Number.isFinite(amt) || amt <= 0 || !row?.currency) return false;
+      const ccy = normalizeLineCurrency(row?.currency);
+      if (!Number.isFinite(amt) || amt <= 0 || !ccy) return false;
       const eur = Number(row.eur_amount);
-      if (row.currency === "EUR") {
+      if (ccy === "EUR") {
         return !Number.isFinite(eur) || eur !== amt;
       }
       return !Number.isFinite(eur) || eur === 0;
@@ -200,22 +275,102 @@ export default function QuoteEditor({
         if (cancelled) return;
         const row = items[i];
         if (!needsHydration(row)) continue;
-        await syncUsdEurFromUnitPrice(i, Number(row.amount), row.currency);
+        await syncUsdEurFromUnitPrice(
+          i,
+          Number(row.amount),
+          normalizeLineCurrency(row.currency),
+        );
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [canMutateItems, hasEurLine, itemsEurFingerprint, syncUsdEurFromUnitPrice]);
+  }, [
+    canMutateItems,
+    showEurColumn,
+    itemsFxFingerprint,
+    syncUsdEurFromUnitPrice,
+  ]);
 
-  /** Vista previa sin `updateItem`: EUR por fila vía API (misma lógica que hidratar). */
+  /** Rellenar `usd_amount` al cargar ítems sin ese campo cuando hay alguna línea en USD. */
   useEffect(() => {
-    if (canMutateItems) {
-      setPreviewEurByIndex({});
-      return;
-    }
-    if (!items?.length || !hasEurLine) {
+    if (!canMutateItems || !items?.length || !hasUsdLine) return;
+
+    const needsHydration = (row: (typeof items)[0]) => {
+      const amt = Number(row?.amount);
+      const ccy = normalizeLineCurrency(row?.currency);
+      if (!Number.isFinite(amt) || amt <= 0 || !ccy) return false;
+      const usd = Number(row.usd_amount);
+      if (ccy === "USD") {
+        return !Number.isFinite(usd) || usd !== amt;
+      }
+      return !Number.isFinite(usd) || usd === 0;
+    };
+
+    let cancelled = false;
+    (async () => {
+      for (let i = 0; i < items.length; i++) {
+        if (cancelled) return;
+        const row = items[i];
+        if (!needsHydration(row)) continue;
+        await syncUsdEurFromUnitPrice(
+          i,
+          Number(row.amount),
+          normalizeLineCurrency(row.currency),
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canMutateItems, hasUsdLine, itemsFxFingerprint, syncUsdEurFromUnitPrice]);
+
+  /** Precio unitario en EUR: la vista previa recién calculada gana sobre `eur_amount` persistido erróneo. */
+  const eurUnitForRow = useCallback(
+    (row: (typeof items)[0], idx: number) => {
+      const preview = previewEurByIndex[idx];
+      const ccy = normalizeLineCurrency(row?.currency);
+      if (
+        preview !== undefined &&
+        Number.isFinite(preview) &&
+        (preview > 0 || ccy === "EUR")
+      ) {
+        return preview;
+      }
+      const stored = Number(row?.eur_amount ?? 0);
+      if (Number.isFinite(stored) && stored > 0) return stored;
+      return ccy === "EUR" ? Number(row?.amount ?? 0) : 0;
+    },
+    [previewEurByIndex],
+  );
+
+  /** Precio unitario en USD: mismo criterio que EUR (preview antes que persistido). */
+  const usdUnitForRow = useCallback(
+    (row: (typeof items)[0], idx: number) => {
+      const preview = previewUsdByIndex[idx];
+      const ccy = normalizeLineCurrency(row?.currency);
+      if (
+        preview !== undefined &&
+        Number.isFinite(preview) &&
+        (preview > 0 || ccy === "USD")
+      ) {
+        return preview;
+      }
+      const stored = Number(row?.usd_amount ?? 0);
+      if (Number.isFinite(stored) && stored > 0) return stored;
+      return ccy === "USD" ? Number(row?.amount ?? 0) : 0;
+    },
+    [previewUsdByIndex],
+  );
+
+  /**
+   * Si se muestra la columna EUR, convierte todas las filas para Total EUR
+   * (no aplica cuando también hay líneas en USD: solo columna USD).
+   */
+  useEffect(() => {
+    if (!items?.length || !showEurColumn) {
       setPreviewEurByIndex({});
       return;
     }
@@ -227,40 +382,100 @@ export default function QuoteEditor({
         if (cancelled) return;
         const row = items[i];
         const amt = Number(row?.amount);
-        if (!Number.isFinite(amt) || amt <= 0 || !row?.currency) continue;
+        const ccy = normalizeLineCurrency(row?.currency);
+        if (!Number.isFinite(amt) || amt <= 0 || !ccy) {
+          next[i] = 0;
+          continue;
+        }
 
-        if (row.currency === "EUR") {
+        if (ccy === "EUR") {
           next[i] = amt;
           continue;
         }
-        if (row.currency === "MXN") {
+
+        if (ccy === "MXN") {
           const res = await ConvertCurrency(amt, "MXN", "EUR");
-          if (res?.rates?.["MXN"]) {
-            next[i] = amt / res.rates["MXN"];
-          }
-        } else if (row.currency === "USD") {
-          const res = await ConvertCurrency(amt, "USD", "EUR");
-          if (res?.rates?.["USD"]) {
-            next[i] = amt / res.rates["USD"];
-          }
+          const eur = convertAmountWithUsdBaseRates(amt, "MXN", "EUR", res);
+          next[i] = eur ?? 0;
+          continue;
         }
+        if (ccy === "USD") {
+          const res = await ConvertCurrency(amt, "USD", "EUR");
+          const eur = convertAmountWithUsdBaseRates(amt, "USD", "EUR", res);
+          next[i] = eur ?? 0;
+          continue;
+        }
+        next[i] = 0;
       }
-      if (!cancelled) setPreviewEurByIndex(next);
+      if (!cancelled) {
+        setPreviewEurByIndex((prev) =>
+          fxPreviewMapsEqual(prev, next) ? prev : next,
+        );
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [canMutateItems, hasEurLine, itemsEurFingerprint]);
+  }, [showEurColumn, itemsFxFingerprint]);
+
+  /**
+   * Si hay alguna línea en USD, convierte todas las filas para Total USD;
+   * las líneas en EUR siguen mostrando EUR en la columna EUR (sin mezclar monedas en esa columna).
+   */
+  useEffect(() => {
+    if (!items?.length || !hasUsdLine) {
+      setPreviewUsdByIndex({});
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const next: Record<number, number> = {};
+      for (let i = 0; i < items.length; i++) {
+        if (cancelled) return;
+        const row = items[i];
+        const amt = Number(row?.amount);
+        const ccy = normalizeLineCurrency(row?.currency);
+        if (!Number.isFinite(amt) || amt <= 0 || !ccy) {
+          next[i] = 0;
+          continue;
+        }
+
+        if (ccy === "USD") {
+          next[i] = amt;
+          continue;
+        }
+
+        if (ccy === "MXN") {
+          const res = await ConvertCurrency(amt, "MXN", "USD");
+          const usd = convertAmountWithUsdBaseRates(amt, "MXN", "USD", res);
+          next[i] = usd ?? 0;
+          continue;
+        }
+        if (ccy === "EUR") {
+          const res = await ConvertCurrency(amt, "EUR", "USD");
+          const usd = convertAmountWithUsdBaseRates(amt, "EUR", "USD", res);
+          next[i] = usd ?? 0;
+          continue;
+        }
+        next[i] = 0;
+      }
+      if (!cancelled) {
+        setPreviewUsdByIndex((prev) =>
+          fxPreviewMapsEqual(prev, next) ? prev : next,
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasUsdLine, itemsFxFingerprint]);
 
   useEffect(() => {
-    const eurUnitForRow = (row: (typeof items)[0], idx: number) =>
-      Number(row?.eur_amount ?? 0) ||
-      previewEurByIndex[idx] ||
-      (row?.currency === "EUR" ? Number(row?.amount ?? 0) : 0);
-
     const unitForTax = (row: (typeof items)[0], idx: number) => {
-      if (hasUsdLine) return Number(row?.usd_amount ?? 0);
+      if (hasUsdLine) return usdUnitForRow(row, idx);
       if (hasEurLine) return eurUnitForRow(row, idx);
       return Number(row?.amount ?? 0);
     };
@@ -286,16 +501,64 @@ export default function QuoteEditor({
       }
     }
     if (hasUsdLine) {
+      const rowNativeSub = (row: (typeof items)[0]) =>
+        Number(row.quantity) * Number(row.amount ?? 0);
+      const rowNativeTot = (row: (typeof items)[0]) => {
+        const sub = rowNativeSub(row);
+        const taxp = Number(row?.tax?.amount || 0) / 100;
+        return sub + sub * taxp;
+      };
+
+      if (docUsdRatesPayload?.rates && Object.keys(docUsdRatesPayload.rates).length > 0) {
+        setSubtotal(
+          items.reduce((a, row, idx) => {
+            const ccy = normalizeLineCurrency(row.currency);
+            const sub = rowNativeSub(row);
+            if (ccy === "USD") return a + sub;
+            const c = convertAmountWithUsdBaseRates(
+              sub,
+              ccy,
+              "USD",
+              docUsdRatesPayload,
+            );
+            return a + (c ?? row.quantity * usdUnitForRow(row, idx));
+          }, 0),
+        );
+        setTax(imp);
+        setTotal(
+          items.reduce((a, row, idx) => {
+            const ccy = normalizeLineCurrency(row.currency);
+            const tot = rowNativeTot(row);
+            if (ccy === "USD") return a + tot;
+            const c = convertAmountWithUsdBaseRates(
+              tot,
+              ccy,
+              "USD",
+              docUsdRatesPayload,
+            );
+            if (c != null) return a + c;
+            const u = usdUnitForRow(row, idx);
+            const impuesto =
+              row.quantity * u * (Number(row?.tax?.amount || 0) / 100);
+            return a + row.quantity * u + impuesto;
+          }, 0),
+        );
+        return;
+      }
+
       setSubtotal(
-        items.reduce((a, i) => a + i.quantity * Number(i?.usd_amount ?? 0), 0),
+        items.reduce(
+          (a, row, idx) => a + row.quantity * usdUnitForRow(row, idx),
+          0,
+        ),
       );
       setTax(imp);
       setTotal(
-        items.reduce((a, i) => {
-          const u = Number(i?.usd_amount ?? 0);
+        items.reduce((a, row, idx) => {
+          const u = usdUnitForRow(row, idx);
           const impuesto =
-            i.quantity * u * (Number(i?.tax?.amount || 0) / 100);
-          return a + i.quantity * u + impuesto;
+            row.quantity * u * (Number(row?.tax?.amount || 0) / 100);
+          return a + row.quantity * u + impuesto;
         }, 0),
       );
       return;
@@ -337,6 +600,10 @@ export default function QuoteEditor({
     setCurrency,
     currency,
     previewEurByIndex,
+    previewUsdByIndex,
+    docUsdRatesPayload,
+    eurUnitForRow,
+    usdUnitForRow,
   ]);
 
   const handleCreateSupplier = async (
@@ -419,14 +686,14 @@ export default function QuoteEditor({
       {/* LOGO + INFO EMPRESA */}
       <div className="flex items-start gap-6 ">
         <img
-          src="https://i.postimg.cc/tRx2S91P/Captura-de-pantalla-2025-12-05-a-la(s)-3-46-29-p-m.png"
-          alt="TimeForwarding Logo"
+          src={quoteLogoSrc}
+          alt={quoteLogoAlt}
           className="w-34 object-contain"
         />
 
         <div className="text-left">
           <h1 style={{ marginBottom: "12px" }} className="text-xl text-brand">
-            Time Forwarding
+            {activeCompany?.name?.trim() || "Time Forwarding"}
           </h1>
           <p className="text-gray-700 mb-1 last:mb-0">
             235 Periférico Boulevard Manuel Ávila Camacho, Ciudad de México
@@ -535,7 +802,7 @@ export default function QuoteEditor({
             <th className="p-2 text-center ">Impuesto</th>
             <th className="p-3 text-center ">Total</th>
             {hasUsdLine && <th className="p-3 text-center ">Total USD</th>}
-            {hasEurLine && <th className="p-3 text-center ">Total EUR</th>}
+            {showEurColumn && <th className="p-3 text-center ">Total EUR</th>}
             <th className="p-3 text-center"></th>
           </tr>
         </thead>
@@ -549,15 +816,32 @@ export default function QuoteEditor({
             const impuestoMonto = subtotal * (porcentaje / 100);
             const total = subtotal + impuestoMonto;
 
-            const usdUnit = Number(it?.usd_amount ?? 0);
+            const usdUnit = usdUnitForRow(it, i);
             const usd_subtotal = it.quantity * usdUnit;
             const usd_impuesto_monto = usd_subtotal * (porcentaje / 100);
             const usd_amount = usd_subtotal + usd_impuesto_monto;
 
-            const eurUnit =
-              Number(it?.eur_amount ?? 0) ||
-              previewEurByIndex[i] ||
-              (it?.currency === "EUR" ? Number(it?.amount ?? 0) : 0);
+            const lineCcy = normalizeLineCurrency(it.currency);
+            let usdTotalDisplay = usd_amount;
+            if (
+              hasUsdLine &&
+              docUsdRatesPayload?.rates &&
+              Object.keys(docUsdRatesPayload.rates).length > 0
+            ) {
+              if (lineCcy === "USD") {
+                usdTotalDisplay = total;
+              } else {
+                const conv = convertAmountWithUsdBaseRates(
+                  total,
+                  lineCcy,
+                  "USD",
+                  docUsdRatesPayload,
+                );
+                if (conv != null) usdTotalDisplay = conv;
+              }
+            }
+
+            const eurUnit = eurUnitForRow(it, i);
             const eur_subtotal = it.quantity * eurUnit;
             const eur_impuesto_monto = eur_subtotal * (porcentaje / 100);
             const eurLineTotal = eur_subtotal + eur_impuesto_monto;
@@ -774,10 +1058,10 @@ export default function QuoteEditor({
                 </td>
                 {hasUsdLine && (
                   <td className="p-3 text-center align-top font-semibold whitespace-nowrap">
-                    {formatCurrency(usd_amount, "USD")}
+                    {formatCurrency(usdTotalDisplay, "USD")}
                   </td>
                 )}
-                {hasEurLine && (
+                {showEurColumn && (
                   <td className="p-3 text-center align-top font-semibold whitespace-nowrap">
                     {formatCurrency(eurLineTotal, "EUR")}
                   </td>
