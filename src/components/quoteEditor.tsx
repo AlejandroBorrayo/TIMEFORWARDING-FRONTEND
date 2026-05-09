@@ -149,7 +149,7 @@ export default function QuoteEditor({
     const fetchnotes = async () => {
       const imp = await FindAllTax({ page: 1, perpage: 1000 });
       const not = await FindAllNotes({ page: 1, perpage: 1000 });
-      setImpuestos(imp?.records);
+      setImpuestos(imp?.records ?? []);
       setCurrentNotes(not?.records);
     };
     fetchnotes();
@@ -158,10 +158,10 @@ export default function QuoteEditor({
   useEffect(() => {
     const fetchTax = async () => {
       const imp = await FindAllTax({ page: 1, perpage: 1000 });
-      setImpuestos(imp?.records);
+      setImpuestos(imp?.records ?? []);
     };
     if (refreshTax) {
-      fetchTax();
+      void fetchTax();
       setRefreshTax(false);
     }
   }, [refreshTax]);
@@ -944,7 +944,7 @@ export default function QuoteEditor({
                           ...(isValidMongoObjectId(id) ? { _id: id } : {}),
                         });
                       }}
-                      onChange={(value) => {
+                      onChange={(value, selectedFromSelect) => {
                         if (value === "no-tax" || value === "none") {
                           updateItem(i, "tax", {
                             name: "sin impuesto",
@@ -952,14 +952,30 @@ export default function QuoteEditor({
                           });
                           return;
                         }
-                        const findImpuestos = impuestos.find(
-                          (imp) => imp?._id === value,
+                        const list = impuestos ?? [];
+                        const findImpuestos = list.find(
+                          (imp) =>
+                            String(imp?._id ?? "").trim() ===
+                            String(value).trim(),
                         );
-                        if (!findImpuestos) return;
+                        const resolved =
+                          findImpuestos ??
+                          (selectedFromSelect &&
+                          selectedFromSelect.name &&
+                          isValidMongoObjectId(
+                            String(selectedFromSelect._id ?? "").trim(),
+                          )
+                            ? {
+                                name: selectedFromSelect.name,
+                                amount: selectedFromSelect.amount,
+                                _id: String(selectedFromSelect._id).trim(),
+                              }
+                            : null);
+                        if (!resolved) return;
                         updateItem(i, "tax", {
-                          name: findImpuestos.name,
-                          amount: findImpuestos.amount,
-                          _id: findImpuestos._id,
+                          name: resolved.name,
+                          amount: resolved.amount,
+                          _id: resolved._id,
                         });
                       }}
                       mode={"edit"}
@@ -1022,7 +1038,7 @@ export default function QuoteEditor({
                               </Select.ItemIndicator>
                             </Select.Item>
 
-                            {impuestos.map((imp) => (
+                            {(impuestos ?? []).map((imp) => (
                               <Select.Item
                                 key={imp._id}
                                 value={imp.name}

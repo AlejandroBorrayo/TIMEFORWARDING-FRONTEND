@@ -145,6 +145,108 @@ export const CreateFolioWithoutCost = async (body: {
   return data;
 };
 
+/** Regenera y expone el PDF del costo de servicio (JSON con `pdf_url` o cuerpo `application/pdf`). */
+export const RegenerateServiceCostPdf = async (
+  no_service_cost: string
+): Promise<void> => {
+  try {
+    const response = await axios.post<Blob>(
+      `${NEXT_PUBLIC_API_URL}/folio/service-cost/regenerate-pdf`,
+      withCompanyId({ no_service_cost }),
+      {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
+        },
+        responseType: "blob",
+      }
+    );
+
+    const type = String(response.headers["content-type"] ?? "");
+    if (type.includes("application/pdf")) {
+      const url = URL.createObjectURL(response.data);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return;
+    }
+
+    const text = await response.data.text();
+    let json: { pdf_url?: string; message?: string };
+    try {
+      json = JSON.parse(text) as { pdf_url?: string; message?: string };
+    } catch {
+      throw new Error("Respuesta inválida del servidor");
+    }
+    if (json.pdf_url) {
+      window.open(json.pdf_url, "_blank");
+      return;
+    }
+    throw new Error(json.message || "Respuesta sin pdf_url");
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response?.data instanceof Blob) {
+      const text = await e.response.data.text();
+      let detail = text;
+      try {
+        const errJson = JSON.parse(text) as { message?: string };
+        if (errJson.message?.trim()) detail = errJson.message.trim();
+      } catch {
+        /* cuerpo no JSON */
+      }
+      throw new Error(detail || `Error ${e.response.status}`);
+    }
+    throw e;
+  }
+};
+
+/** Regenera y expone el PDF de la cotización (JSON con `pdf_url` o cuerpo `application/pdf`). */
+export const RegenerateQuotePdf = async (no_quote: string): Promise<void> => {
+  try {
+    const response = await axios.post<Blob>(
+      `${NEXT_PUBLIC_API_URL}/folio/quote/regenerate-pdf`,
+      withCompanyId({ no_quote }),
+      {
+        headers: {
+          "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
+        },
+        responseType: "blob",
+      }
+    );
+
+    const type = String(response.headers["content-type"] ?? "");
+    if (type.includes("application/pdf")) {
+      const url = URL.createObjectURL(response.data);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return;
+    }
+
+    const text = await response.data.text();
+    let json: { pdf_url?: string; message?: string };
+    try {
+      json = JSON.parse(text) as { pdf_url?: string; message?: string };
+    } catch {
+      throw new Error("Respuesta inválida del servidor");
+    }
+    if (json.pdf_url) {
+      window.open(json.pdf_url, "_blank");
+      return;
+    }
+    throw new Error(json.message || "Respuesta sin pdf_url");
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response?.data instanceof Blob) {
+      const text = await e.response.data.text();
+      let detail = text;
+      try {
+        const errJson = JSON.parse(text) as { message?: string };
+        if (errJson.message?.trim()) detail = errJson.message.trim();
+      } catch {
+        /* cuerpo no JSON */
+      }
+      throw new Error(detail || `Error ${e.response.status}`);
+    }
+    throw e;
+  }
+};
+
 export const SetServiceCostActive = async (body: {
   folio: string;
   /** Si se omite, el backend puede crear/activar solo con el número de folio. */

@@ -8,7 +8,7 @@ import {
   Loader2,
   PlusIcon,
 } from "lucide-react";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo, memo } from "react";
 import { FindAll as FindCustomers } from "@/services/customer";
 import { CustomerInterface } from "@/type/customer.interface";
 
@@ -22,31 +22,60 @@ interface Props {
   mode: string;
 }
 
-export default function CustomerSelect({
+function isValidCustomerId(id: unknown): id is string {
+  return typeof id === "string" && id.trim() !== "";
+}
+
+/** Evita re-render del Select cuando solo cambian callbacks (onChange es capturado en ref)
+ *  o props no relacionados con la selección (Radix + updates rápidos → max depth). */
+function customerSelectPropsEqual(a: Props, b: Props): boolean {
+  return (
+    a.mode === b.mode &&
+    a.error === b.error &&
+    a.refreshCustomers === b.refreshCustomers &&
+    a.value?._id === b.value?._id &&
+    a.value?.company === b.value?.company
+  );
+}
+
+const CustomerSelectFieldMemo = memo(CustomerSelectField, customerSelectPropsEqual);
+
+export default function CustomerSelect(props: Props) {
+  if (props.mode === "preview") {
+    return (
+      <span className="font-semibold">{props.value?.company || "—"}</span>
+    );
+  }
+  return <CustomerSelectFieldMemo {...props} />;
+}
+
+function CustomerSelectField({
   value,
   onChange,
   error,
   setOpenNewCustomer,
   refreshCustomers,
   setRefreshCustomers,
-  mode,
 }: Props) {
-  /* ---------------- PREVIEW MODE ---------------- */
-  if (mode === "preview") {
-    return <span className="font-semibold">{value?.company || "—"}</span>;
-  }
-
-  /* ---------------- STATE ---------------- */
   const [searchTerm, setSearchTerm] = useState("");
+  const searchTermRef = useRef(searchTerm);
+  searchTermRef.current = searchTerm;
+
   const [data, setData] = useState<CustomerInterface[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [open, setOpen] = useState(false);
 
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* ---------------- FETCH ---------------- */
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const selectedValueRef = useRef<string | undefined>(undefined);
+  const handleValueChange = useCallback((v: string) => {
+    if (v === selectedValueRef.current) return;
+    onChangeRef.current(v);
+  }, []);
+
   const fetchData = useCallback(
     async (search: string, pageNumber = 1, append = false) => {
       try {
@@ -70,37 +99,36 @@ export default function CustomerSelect({
     []
   );
 
-  /* ---------------- SEARCH (DEBOUNCE) ---------------- */
+  const skipSearchDebounceOnce = useRef(true);
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    debounceRef.current = setTimeout(() => {
+    if (skipSearchDebounceOnce.current) {
+      skipSearchDebounceOnce.current = false;
+      return;
+    }
+    const t = setTimeout(() => {
       setPage(1);
       setHasMore(true);
       fetchData(searchTerm, 1, false);
     }, 500);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    return () => clearTimeout(t);
   }, [searchTerm, fetchData]);
 
-  /* ---------------- EXTERNAL REFRESH ---------------- */
   useEffect(() => {
-    if (refreshCustomers) {
-      setRefreshCustomers(false);
+    if (!refreshCustomers) return;
+    setRefreshCustomers(false);
+    if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+    refreshDebounceRef.current = setTimeout(() => {
+      refreshDebounceRef.current = null;
       setPage(1);
       setHasMore(true);
-      fetchData(searchTerm, 1, false);
-    }
-  }, [refreshCustomers, fetchData, searchTerm, setRefreshCustomers]);
+      fetchData(searchTermRef.current, 1, false);
+    }, 500);
+  }, [refreshCustomers, setRefreshCustomers, fetchData]);
 
-  /* ---------------- INITIAL LOAD ---------------- */
   useEffect(() => {
     fetchData("", 1, false);
   }, [fetchData]);
 
-  /* ---------------- SCROLL PAGINATION ---------------- */
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
@@ -115,26 +143,40 @@ export default function CustomerSelect({
     }
   };
 
-  /* ---------------- RENDER ---------------- */
+  const selectable = useMemo(
+    () => data.filter((item) => isValidCustomerId(item._id)),
+    [data],
+  );
+
+  const itemsForSelect = useMemo(() => {
+    const id = value?._id;
+    if (!isValidCustomerId(id)) return selectable;
+    if (selectable.some((c) => c._id === id)) return selectable;
+    const company =
+      value?.company && String(value.company).trim() !== ""
+        ? value.company
+        : "—";
+    return [{ ...value, _id: id, company } as CustomerInterface, ...selectable];
+  }, [selectable, value]);
+
+  /** Debe coincidir con `Select.Item` (`_id`), no con `company` (evita bucles en Radix). */
+  const selectedValue = isValidCustomerId(value?._id)
+    ? String(value._id).trim()
+    : undefined;
+  selectedValueRef.current = selectedValue;
+
   return (
     <div>
       <Select.Root
-        value={value?.company}
-        onValueChange={onChange}
-        open={open}
-        onOpenChange={setOpen}
+        value={selectedValue}
+        onValueChange={handleValueChange}
       >
         <Select.Trigger
           className={`px-4 py-2 border border-gray-300 rounded-xl flex justify-between items-center bg-white
             ${error ? "border-red-500" : ""}
             focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand`}
         >
-          <Select.Value placeholder="Selecciona una empresa">
-            <span className="truncate text-ellipsis overflow-hidden whitespace-nowrap flex-1 text-left">
-              {data.find((item) => item._id === value?._id)?.company ||
-                "Selecciona una empresa"}
-            </span>
-          </Select.Value>
+          <Select.Value placeholder="Selecciona una empresa" />
           <Select.Icon className="flex-shrink-0 ml-2">
             <ChevronDownIcon className="w-4 h-4 text-gray-600" />
           </Select.Icon>
@@ -166,8 +208,8 @@ export default function CustomerSelect({
 
             <div className="relative max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               <Select.Viewport onScroll={handleScroll} className="p-1">
-                {data.length > 0
-                  ? data.map((item) => (
+                {itemsForSelect.length > 0
+                  ? itemsForSelect.map((item) => (
                       <Select.Item
                         key={item._id}
                         value={item._id}
@@ -197,11 +239,17 @@ export default function CustomerSelect({
                 )}
               </Select.Viewport>
 
-              {/* Sticky Footer: Agregar empresa */}
               <div className="sticky bottom-0 bg-white border-t border-gray-200">
                 <div
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setOpenNewCustomer(true);
+                    }
+                  }}
                   onClick={() => {
-                    setOpen(false);
                     setOpenNewCustomer(true);
                   }}
                   className="flex items-center gap-2 px-4 hover:bg-gray-100 focus:bg-gray-100 py-2 text-sm font-medium cursor-pointer select-none"

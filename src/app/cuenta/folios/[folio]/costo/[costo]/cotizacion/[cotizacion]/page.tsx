@@ -5,8 +5,12 @@ import { motion } from "framer-motion";
 import QuoteEditor from "./../../../../../../../../components/quoteEditor";
 import { useParams, useRouter } from "next/navigation";
 import { Create as CreateServiceCost } from "../../../../../../../../services/folio";
-import { Find as FindFolio } from "../../../../../../../../services/folio";
+import {
+  Find as FindFolio,
+  RegenerateQuotePdf,
+} from "../../../../../../../../services/folio";
 import { useAuth } from "@/components/authProvider";
+import { Toast } from "@/components/toast";
 import { FolioDtoInterface } from "@/type/folio.dto";
 import { ContactInterface, CustomerInterface } from "@/type/customer.interface";
 
@@ -34,7 +38,12 @@ export default function QuoteCreatePage() {
     | any
   >(null);
 
-  const [pdf, setPdf] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type?: "success" | "error";
+  }>({ visible: false, message: "", type: "error" });
   let isMounted = false;
   const [items, setItems] = useState([]);
   useEffect(() => {
@@ -49,7 +58,6 @@ export default function QuoteCreatePage() {
           const find_quote = find_service_cost?.quotes.find(
             (quote) => quote.no_quote === currentCotizacion
           );
-          setPdf(find_quote?.pdf_url);
           setCurrency(find_quote?.currency);
           setItems(find_quote?.items);
           setNotes(find_quote?.notes);
@@ -63,6 +71,23 @@ export default function QuoteCreatePage() {
       loadFolio();
     }
   }, [currentFolio]);
+
+  const handleDownloadPdf = async () => {
+    if (!currentCotizacion?.trim() || downloadingPdf) return;
+    setDownloadingPdf(true);
+    try {
+      await RegenerateQuotePdf(currentCotizacion.trim());
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "No se pudo generar el PDF.";
+      setToast({ visible: true, message: msg, type: "error" });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const downloadBlocked =
+    !currentCotizacion?.trim() || loadingQuote || downloadingPdf;
 
   return (
     <motion.div
@@ -108,17 +133,24 @@ export default function QuoteCreatePage() {
         </Link>
         {/* Descargar PDF */}
         <button
-          onClick={() => window.open(pdf, "_blank")}
-          disabled={!pdf || loadingQuote}
+          type="button"
+          onClick={() => void handleDownloadPdf()}
+          disabled={downloadBlocked}
           className={`btn btn-lg font-medium ${
-            !pdf || loadingQuote
+            downloadBlocked
               ? "cursor-not-allowed border border-gray-300 bg-white text-gray-400 shadow-none"
               : "btn-soft-brand"
           }`}
         >
-          Descargar PDF
+          {downloadingPdf ? "Generando PDF…" : "Descargar PDF"}
         </button>
       </div>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((t) => ({ ...t, visible: false }))}
+      />
     </motion.div>
   );
 }

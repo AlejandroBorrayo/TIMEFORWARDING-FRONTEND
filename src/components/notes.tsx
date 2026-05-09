@@ -8,7 +8,7 @@ import {
   Loader2,
   PlusIcon,
 } from "lucide-react";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, memo } from "react";
 import {
   FindAll as FindNotes,
   Update as UpdateNotes,
@@ -50,22 +50,35 @@ function resolveSelectRootValue(
   return undefined;
 }
 
-export default function NotesSelect({
+/** Evita re-render cuando solo cambian callbacks o props no relacionados con
+ *  la selección (Radix + updates rápidos de FX → max depth). */
+function notesSelectPropsEqual(a: Props, b: Props): boolean {
+  return (
+    a.mode === b.mode &&
+    a.error === b.error &&
+    a.index === b.index &&
+    a.className === b.className &&
+    noteTextFromValue(a.value) === noteTextFromValue(b.value)
+  );
+}
+
+function NotesSelectField({
   value,
   onChange,
   error,
-  mode,
   index,
   className,
 }: Props) {
-  const [openNewNote, setOpenNewNote] = useState(null);
+  const [openNewNote, setOpenNewNote] = useState<boolean>(false);
+  const [editingNote, setEditingNote] = useState<{
+    note: string;
+    _id: string;
+  } | null>(null);
 
-  const [editingNote, setEditingNote] = useState<{ note: string; _id: string }>(
-    null,
-  );
-
-  /* ---------------- STATE ---------------- */
   const [searchTerm, setSearchTerm] = useState("");
+  const searchTermRef = useRef(searchTerm);
+  searchTermRef.current = searchTerm;
+
   const [data, setData] = useState<NoteCollectionInterface[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -73,6 +86,16 @@ export default function NotesSelect({
   const [open, setOpen] = useState(false);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  /** Refs para acceder a los valores más recientes sin recrear handlers. */
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  const dataRef = useRef(data);
+  dataRef.current = data;
+
+  const indexRef = useRef(index ?? 0);
+  indexRef.current = index ?? 0;
 
   /* ---------------- FETCH ---------------- */
   const fetchData = useCallback(
@@ -85,23 +108,24 @@ export default function NotesSelect({
           search,
         );
 
-        const items = result?.records?.map((note) => {
-          return { _id: note?._id, note: note?.note };
-        });
+        const items = result?.records?.map((note) => ({
+          _id: note?._id,
+          note: note?.note,
+        }));
+
         setData((prev) => {
           if (!append) return items;
           const merged = [...prev, ...items];
           return merged.filter(
-            (item, index, array) =>
+            (item, i, array) =>
               array.findIndex(
-                (candidate) =>
-                  candidate?._id === item?._id && candidate?.note === item?.note
-              ) === index
+                (c) => c?._id === item?._id && c?.note === item?.note,
+              ) === i,
           );
         });
         setHasMore(items.length === 20);
-      } catch (error) {
-        console.error("Error cargando clientes:", error);
+      } catch (err) {
+        console.error("Error cargando notas:", err);
       } finally {
         setLoading(false);
       }
@@ -109,39 +133,55 @@ export default function NotesSelect({
     [],
   );
 
-  /* ---------------- SEARCH (DEBOUNCE) ---------------- */
+  /** Carga inicial. */
   useEffect(() => {
-    if (mode === "preview") return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    fetchData("", 1, false);
+  }, [fetchData]);
 
+  /* ---------------- SEARCH (DEBOUNCE) ---------------- */
+  const skipSearchDebounceOnce = useRef(true);
+  useEffect(() => {
+    if (skipSearchDebounceOnce.current) {
+      skipSearchDebounceOnce.current = false;
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
       setPage(1);
       setHasMore(true);
-      fetchData(searchTerm, 1, false);
+      fetchData(searchTermRef.current, 1, false);
     }, 500);
-
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [searchTerm, fetchData, mode]);
+  }, [searchTerm, fetchData]);
 
   /* ---------------- SCROLL PAGINATION ---------------- */
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-
     if (scrollTop + clientHeight >= scrollHeight - 10 && !loading && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchData(searchTerm, nextPage, true);
+      fetchData(searchTermRef.current, nextPage, true);
     }
   };
 
-  /* ---------------- RENDER ---------------- */
-  if (mode === "preview") {
-    const t = noteTextFromValue(value);
-    return <span className="font-semibold">{t.trim() ? t : "—"}</span>;
-  }
+  /* ---------------- VALUE CHANGE (stable, sin recrearse en cada render) ---------------- */
+  const handleValueChange = useCallback((selectedId: string) => {
+    const fallback = /^__note_fallback_(\d+)__$/.exec(selectedId);
+    if (fallback) {
+      const row = dataRef.current[Number(fallback[1])];
+      onChangeRef.current(row?.note ?? "", indexRef.current);
+      return;
+    }
+    const item = dataRef.current.find(
+      (x) => String(x?._id) === String(selectedId),
+    );
+    onChangeRef.current(item?.note ?? "", indexRef.current);
+  }, []);
 
+  /* ---------------- RENDER ---------------- */
   const displayNote = noteTextFromValue(value);
   const rootValue = resolveSelectRootValue(value, data);
 
@@ -149,16 +189,7 @@ export default function NotesSelect({
     <div className={className ?? ""}>
       <Select.Root
         value={rootValue}
-        onValueChange={(selectedId) => {
-          const fallback = /^__note_fallback_(\d+)__$/.exec(selectedId);
-          if (fallback) {
-            const row = data[Number(fallback[1])];
-            onChange(row?.note ?? "", index ?? 0);
-            return;
-          }
-          const item = data.find((x) => String(x?._id) === String(selectedId));
-          onChange(item?.note ?? "", index ?? 0);
-        }}
+        onValueChange={handleValueChange}
         open={open}
         onOpenChange={setOpen}
       >
@@ -205,13 +236,13 @@ export default function NotesSelect({
             <div className="relative max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               <Select.Viewport onScroll={handleScroll} className="p-1">
                 {data.length > 0
-                  ? data.map((item, index) => (
+                  ? data.map((item, i) => (
                       <Select.Item
-                        key={item?._id || `note-row-${index}`}
+                        key={item?._id || `note-row-${i}`}
                         value={
                           item?._id != null && String(item._id).trim() !== ""
                             ? String(item._id)
-                            : `__note_fallback_${index}__`
+                            : `__note_fallback_${i}__`
                         }
                         className="relative flex items-start px-8 py-2 text-sm rounded-md cursor-pointer select-none 
                         hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
@@ -239,7 +270,6 @@ export default function NotesSelect({
                 )}
               </Select.Viewport>
 
-              {/* Sticky Footer: Agregar empresa */}
               <div className="sticky bottom-0 bg-white border-t border-gray-200">
                 <div
                   onClick={() => {
@@ -260,6 +290,7 @@ export default function NotesSelect({
           </Select.Content>
         </Select.Portal>
       </Select.Root>
+
       <ModalNote
         visible={openNewNote}
         onClose={() => {
@@ -267,15 +298,25 @@ export default function NotesSelect({
           setEditingNote(null);
         }}
         initialData={editingNote}
-        onSubmit={async (data) => {
+        onSubmit={async (formData) => {
           if (editingNote) {
-            await UpdateNotes(editingNote._id, data?.note);
+            await UpdateNotes(editingNote._id, formData?.note);
           } else {
-            await CreateNotes(data?.note);
+            await CreateNotes(formData?.note);
           }
-          fetchData(searchTerm, 1, false);
+          fetchData(searchTermRef.current, 1, false);
         }}
       />
     </div>
   );
+}
+
+const NotesSelectFieldMemo = memo(NotesSelectField, notesSelectPropsEqual);
+
+export default function NotesSelect(props: Props) {
+  if (props.mode === "preview") {
+    const t = noteTextFromValue(props.value);
+    return <span className="font-semibold">{t.trim() ? t : "—"}</span>;
+  }
+  return <NotesSelectFieldMemo {...props} />;
 }

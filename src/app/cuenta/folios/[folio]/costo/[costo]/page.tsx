@@ -5,9 +5,10 @@ import { motion } from "framer-motion";
 import QuoteEditor from "./../../../../../../components/quoteEditor";
 import { useParams, useRouter } from "next/navigation";
 import { Create as CreateServiceCost } from "../../../../../../services/folio";
-import { Find as FindFolio } from "../../../../../../services/folio";
+import { Find as FindFolio, RegenerateServiceCostPdf } from "../../../../../../services/folio";
 import { useAuth } from "@/components/authProvider";
 import ModalViewQuotes from "@/components/viewQuotesModal";
+import { Toast } from "@/components/toast";
 import { FolioDtoInterface } from "@/type/folio.dto";
 
 export default function QuoteCreatePage() {
@@ -22,7 +23,12 @@ export default function QuoteCreatePage() {
   const [currency, setCurrency] = useState("MXN");
   const [serviceCost, setServiceCost] = useState(null);
 
-  const [pdf, setPdf] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type?: "success" | "error";
+  }>({ visible: false, message: "", type: "error" });
   const [visibleQuotesModal, setVisibleQuotesModal] = useState(false);
   let isMounted = false;
   const [items, setItems] = useState([]);
@@ -36,7 +42,6 @@ export default function QuoteCreatePage() {
           const find_service_cost = folio?.service_cost.find(
             (cost) => cost.no_service_cost === currentCost,
           );
-          setPdf(find_service_cost?.pdf_url);
           setCurrency(find_service_cost?.currency);
           setItems(find_service_cost?.items);
           setServiceCost(find_service_cost);
@@ -48,6 +53,23 @@ export default function QuoteCreatePage() {
       loadFolio();
     }
   }, [currentFolio]);
+
+  const handleDownloadPdf = async () => {
+    if (!currentCost?.trim() || downloadingPdf) return;
+    setDownloadingPdf(true);
+    try {
+      await RegenerateServiceCostPdf(currentCost.trim());
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "No se pudo generar el PDF.";
+      setToast({ visible: true, message: msg, type: "error" });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const downloadBlocked =
+    !currentCost?.trim() || loadingQuote || downloadingPdf;
 
   return (
     <motion.div
@@ -82,15 +104,16 @@ export default function QuoteCreatePage() {
       <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-gray-300">
         {/* Descargar PDF */}
         <button
-          onClick={() => window.open(pdf, "_blank")}
-          disabled={!pdf || loadingQuote}
+          type="button"
+          onClick={() => void handleDownloadPdf()}
+          disabled={downloadBlocked}
           className={`btn btn-lg font-medium ${
-            !pdf || loadingQuote
+            downloadBlocked
               ? "cursor-not-allowed border border-gray-300 bg-white text-gray-400 shadow-none"
               : "btn-soft-brand"
           }`}
         >
-          Descargar PDF
+          {downloadingPdf ? "Generando PDF…" : "Descargar PDF"}
         </button>
 
         {/* Duplicar costo */}
@@ -124,6 +147,12 @@ export default function QuoteCreatePage() {
         folio={currentFolio}
         service_cost={serviceCost}
       ></ModalViewQuotes>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((t) => ({ ...t, visible: false }))}
+      />
     </motion.div>
   );
 }

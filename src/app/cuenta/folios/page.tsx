@@ -7,6 +7,8 @@ import { DotsVerticalIcon } from "@radix-ui/react-icons";
 import {
   CreateFolioWithoutCost,
   FindAll as FindAllFolios,
+  RegenerateQuotePdf,
+  RegenerateServiceCostPdf,
   SetFolioDisabled,
   SetQuoteActive,
   SetServiceCostActive,
@@ -29,30 +31,39 @@ const SUGGEST_FOLIO_PER_PAGE = 500;
 /** Límite de seguridad por si el API devolviera totalpages incorrecto. */
 const SUGGEST_FOLIO_MAX_PAGES = 2000;
 
-/** Prefijo fijo del folio; el conteo numérico va después sin ceros a la izquierda (TIME1, TIME638, …). */
+/** Prefijo fijo del folio (TIME001, TIME638, …). */
 const FOLIO_SLUG_PREFIX = "TIME";
 
-/**
- * Formato actual: TIME639 (el primer dígito del número no es 0).
- * Folios antiguos TIME00653 cuentan como 653 y desplazaban el sugerido; se ignoran para el máximo
- * si existe al menos un folio en formato sin cero inicial tras TIME.
- */
+/** TIME638: parte numérica sin cero inicial. */
 function isUnpaddedTimeSlug(folio: string): boolean {
   return new RegExp(`^${FOLIO_SLUG_PREFIX}[1-9]\\d*$`, "i").test(
     String(folio ?? "").trim(),
   );
 }
 
+/** TIME001, TIME010, TIME00653: parte numérica empieza en 0 (ancho fijo con ceros a la izquierda). */
+function isZeroPaddedTimeSlug(folio: string): boolean {
+  const m = String(folio ?? "")
+    .trim()
+    .match(new RegExp(`^${FOLIO_SLUG_PREFIX}(\\d+)$`, "i"));
+  if (!m) return false;
+  return m[1].startsWith("0");
+}
+
 type SlugSeqAccumulator = {
-  /** Máximo solo entre slugs TIME639 (no TIME00653). */
   maxUnpadded: number;
   hasUnpadded: boolean;
-  /** Máximo entre todos los TIME+dígitos (compatibilidad si solo hay legado). */
+  maxPadded: number;
+  hasPadded: boolean;
+  /** Mayor longitud de la parte numérica entre folios con ceros a la izquierda (p. ej. 3 en TIME001). */
+  paddedDigitWidth: number;
   maxAll: number;
   hasAny: boolean;
 };
 
-function parseSlugSequenceDetail(folio: string): { value: number } | null {
+function parseSlugSequenceDetail(
+  folio: string,
+): { value: number; digits: string } | null {
   const m = String(folio ?? "")
     .trim()
     .match(new RegExp(`^${FOLIO_SLUG_PREFIX}(\\d+)$`, "i"));
@@ -60,7 +71,7 @@ function parseSlugSequenceDetail(folio: string): { value: number } | null {
   const digits = m[1];
   const n = parseInt(digits, 10);
   if (Number.isNaN(n)) return null;
-  return { value: n };
+  return { value: n, digits };
 }
 
 function accumulateSlugSequences(
@@ -78,18 +89,34 @@ function accumulateSlugSequences(
       acc.hasUnpadded = true;
       acc.maxUnpadded = Math.max(acc.maxUnpadded, d.value);
     }
+    if (isZeroPaddedTimeSlug(raw)) {
+      acc.hasPadded = true;
+      acc.maxPadded = Math.max(acc.maxPadded, d.value);
+      acc.paddedDigitWidth = Math.max(acc.paddedDigitWidth, d.digits.length);
+    }
   }
 }
 
-/** Siguiente código: prioriza folios TIME+número sin cero inicial; si no hay, usa todos los TIME*. */
+/**
+ * Siguiente código:
+ * 1) Si hay algún folio sin cero inicial (TIME638) → TIME639 sin relleno.
+ * 2) Si solo hay familia TIME001 / TIME010 → mismo ancho de dígitos (TIME003, TIME011).
+ * 3) Resto de TIME+dígitos → número siguiente sin relleno.
+ * 4) Sin folios → TIME001 (tres dígitos).
+ */
 function formatNextSlugFromAccumulator(acc: SlugSeqAccumulator): string {
   if (acc.hasUnpadded) {
     return `${FOLIO_SLUG_PREFIX}${acc.maxUnpadded + 1}`;
   }
+  if (acc.hasPadded) {
+    const next = acc.maxPadded + 1;
+    const width = Math.max(acc.paddedDigitWidth, String(next).length);
+    return `${FOLIO_SLUG_PREFIX}${String(next).padStart(width, "0")}`;
+  }
   if (acc.hasAny) {
     return `${FOLIO_SLUG_PREFIX}${acc.maxAll + 1}`;
   }
-  return `${FOLIO_SLUG_PREFIX}1`;
+  return `${FOLIO_SLUG_PREFIX}001`;
 }
 
 export default function FoliosPage() {
@@ -208,6 +235,30 @@ export default function FoliosPage() {
     }
   };
 
+  const handleDownloadServiceCostPdf = async (no_service_cost: string) => {
+    if (!no_service_cost?.trim()) return;
+    try {
+      await RegenerateServiceCostPdf(no_service_cost.trim());
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "No se pudo generar el PDF.";
+      setToast({ visible: true, message: msg, type: "error" });
+    }
+  };
+
+  const handleDownloadQuotePdf = async (no_quote: string) => {
+    if (!no_quote?.trim()) return;
+    try {
+      await RegenerateQuotePdf(no_quote.trim());
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "No se pudo generar el PDF de la cotización.";
+      setToast({ visible: true, message: msg, type: "error" });
+    }
+  };
+
   const handleSetFolioDisabled = async (
     folio: FolioCollectionInterface,
     disabled: boolean,
@@ -242,11 +293,14 @@ export default function FoliosPage() {
     const acc: SlugSeqAccumulator = {
       maxUnpadded: 0,
       hasUnpadded: false,
+      maxPadded: 0,
+      hasPadded: false,
+      paddedDigitWidth: 0,
       maxAll: 0,
       hasAny: false,
     };
     if (!is_admin && !userid) {
-      setSuggestedFolio(`${FOLIO_SLUG_PREFIX}1`);
+      setSuggestedFolio(`${FOLIO_SLUG_PREFIX}001`);
       setPreparingSuggestedFolio(false);
       return;
     }
@@ -267,10 +321,10 @@ export default function FoliosPage() {
 
       setSuggestedFolio(formatNextSlugFromAccumulator(acc));
     } catch {
-      setSuggestedFolio(`${FOLIO_SLUG_PREFIX}1`);
+      setSuggestedFolio(`${FOLIO_SLUG_PREFIX}001`);
       setToast({
         visible: true,
-        message: `No se pudo calcular el folio sugerido; se usará ${FOLIO_SLUG_PREFIX}1.`,
+        message: `No se pudo calcular el folio sugerido; se usará ${FOLIO_SLUG_PREFIX}001.`,
         type: "error",
       });
     } finally {
@@ -754,12 +808,11 @@ export default function FoliosPage() {
                                     )}
 
                                     <DropdownMenu.Item
-                                      onSelect={() =>
-                                        window.open(
-                                          serviceCost?.pdf_url,
-                                          "_blank",
-                                        )
-                                      }
+                                      onSelect={() => {
+                                        void handleDownloadServiceCostPdf(
+                                          serviceCost.no_service_cost,
+                                        );
+                                      }}
                                       className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
                                     >
                                       Descargar PDF
@@ -916,12 +969,11 @@ export default function FoliosPage() {
                                             </DropdownMenu.Item>
 
                                             <DropdownMenu.Item
-                                              onSelect={() =>
-                                                window.open(
-                                                  quote?.pdf_url,
-                                                  "_blank",
-                                                )
-                                              }
+                                              onSelect={() => {
+                                                void handleDownloadQuotePdf(
+                                                  quote.no_quote,
+                                                );
+                                              }}
                                               className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
                                             >
                                               Descargar PDF

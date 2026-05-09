@@ -8,54 +8,85 @@ import {
   Loader2,
   PlusIcon,
 } from "lucide-react";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo, memo } from "react";
 import { FindAll as FindTax, Create as CreateTax } from "@/services/tax";
 import { taxCollectionInterface } from "@/type/tax.interface";
 import TaxModal from "./taxModal";
 
 interface Props {
   value?: taxCollectionInterface;
-  onChange: (val: string) => void;
+  /** `selected` es el registro del listado del propio select (útil si el padre aún no cargó el catálogo). */
+  onChange: (val: string, selected?: taxCollectionInterface) => void;
   error?: boolean;
   mode: string;
   setRefreshTax: (val: boolean) => void;
-  /** Fila del concepto que abre "Agregar impuesto" (asignar al guardar). */
   onBeforeOpenNewTax?: () => void;
   onTaxCreated?: (tax: taxCollectionInterface) => void;
   onTaxModalDismiss?: () => void;
 }
 
-export default function TaxSelect({
+function isValidTaxItemId(id: unknown): id is string {
+  return typeof id === "string" && id.trim() !== "";
+}
+
+/** Valor del Radix Select: debe coincidir con un `Select.Item` (`no-tax` o `_id`). */
+function selectRootValue(value?: taxCollectionInterface): string | undefined {
+  if (!value) return undefined;
+  if (value.name === "sin impuesto") return "no-tax";
+  if (isValidTaxItemId(value._id)) return String(value._id).trim();
+  return undefined;
+}
+
+function taxSelectPropsEqual(a: Props, b: Props): boolean {
+  return (
+    a.mode === b.mode &&
+    a.error === b.error &&
+    a.value?._id === b.value?._id &&
+    a.value?.name === b.value?.name &&
+    Number(a.value?.amount ?? 0) === Number(b.value?.amount ?? 0)
+  );
+}
+
+export default function TaxSelect(props: Props) {
+  if (props.mode === "preview") {
+    return (
+      <span className="font-semibold">
+        {props.value?.name
+          ? `${props.value.name} (${props.value.amount}%)`
+          : "Sin impuesto"}
+      </span>
+    );
+  }
+  return <TaxSelectFieldMemo {...props} />;
+}
+
+function TaxSelectField({
   value,
   onChange,
   error,
-  mode,
   setRefreshTax,
   onBeforeOpenNewTax,
   onTaxCreated,
   onTaxModalDismiss,
 }: Props) {
-  /* ---------------- PREVIEW MODE ---------------- */
-  if (mode === "preview") {
-    return (
-      <span className="font-semibold">
-        {value?.name ? `${value.name} (${value.amount}%)` : "Sin impuesto"}
-      </span>
-    );
-  }
-
-  /* ---------------- STATE ---------------- */
   const [openNewNote, setOpenNewNote] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const searchTermRef = useRef(searchTerm);
+  searchTermRef.current = searchTerm;
+
   const [data, setData] = useState<taxCollectionInterface[]>([]);
+  const dataRef = useRef<taxCollectionInterface[]>([]);
+  dataRef.current = data;
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [open, setOpen] = useState(false);
 
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* ---------------- FETCH ---------------- */
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const selectedRef = useRef<string | undefined>(undefined);
+
   const fetchData = useCallback(
     async (search: string, pageNumber = 1, append = false) => {
       try {
@@ -84,7 +115,9 @@ export default function TaxSelect({
           const source = append ? [...prev, ...items] : items;
 
           source.forEach((item) => {
-            map.set(item._id, item);
+            if (isValidTaxItemId(item._id)) {
+              map.set(String(item._id).trim(), item);
+            }
           });
 
           return Array.from(map.values());
@@ -98,22 +131,28 @@ export default function TaxSelect({
     []
   );
 
-  /* ---------------- SEARCH (DEBOUNCE) ---------------- */
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    fetchData("", 1, false);
+  }, [fetchData]);
 
+  const skipSearchDebounceOnce = useRef(true);
+  useEffect(() => {
+    if (skipSearchDebounceOnce.current) {
+      skipSearchDebounceOnce.current = false;
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
       setPage(1);
       setHasMore(true);
-      fetchData(searchTerm, 1, false);
+      fetchData(searchTermRef.current, 1, false);
     }, 500);
-
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [searchTerm, fetchData]);
 
-  /* ---------------- SCROLL PAGINATION ---------------- */
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
@@ -124,30 +163,52 @@ export default function TaxSelect({
     }
   };
 
-  const rootValue =
-    value?.name === "sin impuesto" ? "no-tax" : value?._id;
+  const selectable = useMemo(
+    () => data.filter((item) => isValidTaxItemId(item._id)),
+    [data],
+  );
 
-  /* ---------------- RENDER ---------------- */
+  const itemsForSelect = useMemo(() => {
+    const root = selectRootValue(value);
+    if (!root || root === "no-tax") return selectable;
+    if (selectable.some((t) => String(t._id).trim() === root)) return selectable;
+    if (value && isValidTaxItemId(value._id)) {
+      return [
+        {
+          _id: String(value._id).trim(),
+          name: value.name,
+          amount: value.amount,
+        } as taxCollectionInterface,
+        ...selectable,
+      ];
+    }
+    return selectable;
+  }, [selectable, value]);
+
+  const selectedValue = selectRootValue(value);
+  selectedRef.current = selectedValue;
+
+  const handleValueChange = useCallback((v: string) => {
+    if (v === selectedRef.current) return;
+    let selectedRow: taxCollectionInterface | undefined;
+    if (v !== "no-tax") {
+      selectedRow = dataRef.current.find(
+        (t) =>
+          isValidTaxItemId(t._id) && String(t._id).trim() === String(v).trim(),
+      );
+    }
+    onChangeRef.current(v, selectedRow);
+  }, []);
+
   return (
     <div style={{ display: "flex", justifyContent: "center" }}>
-      <Select.Root
-        value={rootValue}
-        onValueChange={onChange}
-        open={open}
-        onOpenChange={setOpen}
-      >
+      <Select.Root value={selectedValue} onValueChange={handleValueChange}>
         <Select.Trigger
           className={`px-4 py-2 border border-gray-300 rounded-xl flex justify-between items-center bg-white
             ${error ? "border-red-500" : ""}
             focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand cursor-pointer`}
         >
-          <Select.Value placeholder="Impuesto">
-            <span className="truncate text-ellipsis overflow-hidden whitespace-nowrap flex-1 text-left">
-              {value?.name
-                ? `${value?.name} (${value?.amount}%)`
-                : "Sin impuesto"}
-            </span>
-          </Select.Value>
+          <Select.Value placeholder="Impuesto" />
           <Select.Icon className="flex-shrink-0 ml-2">
             <ChevronDownIcon className="w-4 h-4 text-gray-600" />
           </Select.Icon>
@@ -179,7 +240,6 @@ export default function TaxSelect({
 
             <div className="relative max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               <Select.Viewport onScroll={handleScroll} className="p-1">
-                {/* Opción fija: Sin impuesto */}
                 <Select.Item
                   value="no-tax"
                   className="relative flex items-start px-8 py-2 text-sm rounded-md cursor-pointer select-none 
@@ -195,12 +255,11 @@ export default function TaxSelect({
                   </Select.ItemIndicator>
                 </Select.Item>
 
-                {/* Items dinámicos */}
-                {data.length > 0
-                  ? data.map((item) => (
+                {itemsForSelect.length > 0
+                  ? itemsForSelect.map((item) => (
                       <Select.Item
                         key={item._id}
-                        value={item._id}
+                        value={String(item._id).trim()}
                         className="relative flex items-start px-8 py-2 text-sm rounded-md cursor-pointer select-none 
           hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                       >
@@ -227,11 +286,18 @@ export default function TaxSelect({
                 )}
               </Select.Viewport>
 
-              {/* Sticky Footer: Agregar empresa */}
               <div className="sticky bottom-0 bg-white border-t border-gray-200">
                 <div
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onBeforeOpenNewTax?.();
+                      setOpenNewNote(true);
+                    }
+                  }}
                   onClick={() => {
-                    setOpen(false);
                     onBeforeOpenNewTax?.();
                     setOpenNewNote(true);
                   }}
@@ -267,3 +333,5 @@ export default function TaxSelect({
     </div>
   );
 }
+
+const TaxSelectFieldMemo = memo(TaxSelectField, taxSelectPropsEqual);

@@ -8,10 +8,33 @@ import {
   Loader2,
   PlusIcon,
 } from "lucide-react";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, memo } from "react";
 import { CustomerInterface, ContactInterface } from "@/type/customer.interface";
 
-export default function ContactSelect({
+interface Props {
+  customer?: CustomerInterface;
+  value?: ContactInterface;
+  onChange: (val: string) => void;
+  error?: boolean;
+  setOpenNewContact: (open: boolean) => void;
+  refreshCustomers: boolean;
+  setRefreshCustomers: (refresh: boolean) => void;
+  mode: string;
+}
+
+/** Solo re-renderiza cuando cambia el cliente, el contacto seleccionado, el modo o el flag de refresh.
+ *  Evita bucles infinitos cuando los efectos FX actualizan importes rápidamente (Radix + updates rápidos → max depth). */
+function contactSelectPropsEqual(a: Props, b: Props): boolean {
+  return (
+    a.mode === b.mode &&
+    a.error === b.error &&
+    a.refreshCustomers === b.refreshCustomers &&
+    a.customer?._id === b.customer?._id &&
+    a.value?.email === b.value?.email
+  );
+}
+
+function ContactSelectField({
   customer,
   value,
   onChange,
@@ -19,72 +42,103 @@ export default function ContactSelect({
   setOpenNewContact,
   refreshCustomers,
   setRefreshCustomers,
-  mode
-}: {
-  customer?: CustomerInterface;
-  value?: ContactInterface;
-  onChange: (val: string) => void;
-  error?: boolean;
-  setOpenNewContact: (open: boolean) => void;
-  refreshCustomers:boolean
-  setRefreshCustomers: (refresh: boolean) => void;
-  mode:string
-}) {
-  if (mode === "preview") {
-    return <span className={"font-semibold"}>{value?.email || "—"}</span>;
-  }
+}: Props) {
   const [searchTerm, setSearchTerm] = useState("");
+  const searchTermRef = useRef(searchTerm);
+  searchTermRef.current = searchTerm;
+
   const [data, setData] = useState<ContactInterface[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cargar contactos del customer
+  /** Mantiene siempre la referencia al customer más reciente sin recrear fetchData. */
+  const customerRef = useRef(customer);
+  customerRef.current = customer;
+
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  const selectedRef = useRef<string | undefined>(undefined);
+  const selectedValue = value?.email;
+  selectedRef.current = selectedValue;
+
+  /** handleValueChange con guard para evitar llamadas redundantes a onChange. */
+  const handleValueChange = useCallback((v: string) => {
+    if (v === selectedRef.current) return;
+    onChangeRef.current(v);
+  }, []);
+
+  /**
+   * fetchData depende de `customer?._id` (primitivo estable) y accede a los
+   * contactos via ref para evitar recrarse cuando solo cambia la referencia
+   * del objeto customer sin cambiar el cliente seleccionado.
+   */
   const fetchData = useCallback(
     (term = "") => {
-      if (!customer) {
+      const c = customerRef.current;
+      if (!c) {
         setData([]);
         return;
       }
-
       setLoading(true);
-      // Filtrar contactos por nombre o email
-      const filtered = customer.contacts.filter(
-        (c) =>
-          c.name.toLowerCase().includes(term.toLowerCase()) ||
-          c.email.toLowerCase().includes(term.toLowerCase())
-      );
+      const contacts = c.contacts ?? [];
+      const lower = term.toLowerCase();
+      const filtered = lower
+        ? contacts.filter(
+            (ct) =>
+              ct.name.toLowerCase().includes(lower) ||
+              ct.email.toLowerCase().includes(lower),
+          )
+        : contacts;
       setData(filtered);
       setLoading(false);
     },
-    [customer]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [customer?._id],
   );
 
-  // Debounce búsqueda
-  useEffect(() => {
-    if(!refreshCustomers){
-      setRefreshCustomers(false)
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        fetchData(searchTerm);
-      }, 300);
-    }
-
-  }, [searchTerm, fetchData,refreshCustomers]);
-
-  // Actualizar lista cuando cambie el customer
+  /** Recarga la lista cuando cambia el cliente seleccionado. */
   useEffect(() => {
     setSearchTerm("");
     fetchData("");
-  }, [customer, fetchData]);
+  }, [fetchData]);
+
+  /** Recarga la lista cuando se crea un nuevo contacto (refreshCustomers → true). */
+  useEffect(() => {
+    if (!refreshCustomers) return;
+    setRefreshCustomers(false);
+    setSearchTerm("");
+    fetchData("");
+  }, [refreshCustomers, setRefreshCustomers, fetchData]);
+
+  /** Búsqueda con debounce. */
+  const skipSearchDebounceOnce = useRef(true);
+  useEffect(() => {
+    if (skipSearchDebounceOnce.current) {
+      skipSearchDebounceOnce.current = false;
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      fetchData(searchTermRef.current);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchTerm, fetchData]);
 
   return (
     <div>
-      <Select.Root value={value?.email} onValueChange={onChange} open={open}  onOpenChange={setOpen}  /* onOpenChange={(isOpen) => {
-    if (!currentQuote) setOpen(isOpen);
-  }} */>
+      <Select.Root
+        value={selectedValue}
+        onValueChange={handleValueChange}
+        open={open}
+        onOpenChange={setOpen}
+      >
         <Select.Trigger
-          className={` px-4 py-2 border border-gray-300 rounded-xl flex justify-between items-center bg-white
+          className={`px-4 py-2 border border-gray-300 rounded-xl flex justify-between items-center bg-white
             ${error ? "border-red-500" : ""}
             focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand`}
         >
@@ -104,7 +158,7 @@ export default function ContactSelect({
           <Select.Content
             position="popper"
             className="
-              overflow-hidden bg-white rounded-lg shadow-lg z-50 
+              overflow-hidden bg-white rounded-lg shadow-lg z-50
               animate-in fade-in slide-in-from-top-1 border border-gray-200
               w-[420px] min-w-[var(--radix-select-trigger-width)] max-w-[95vw]
             "
@@ -131,7 +185,7 @@ export default function ContactSelect({
                     <Select.Item
                       key={idx}
                       value={c.email}
-                      className="relative flex items-start px-8 py-2 text-sm rounded-md cursor-pointer select-none 
+                      className="relative flex items-start px-8 py-2 text-sm rounded-md cursor-pointer select-none
                         hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                     >
                       <Select.ItemText>
@@ -146,7 +200,9 @@ export default function ContactSelect({
                   ))
                 ) : (
                   !loading && (
-                    <div className="px-4 py-2 text-gray-400 text-sm">Sin resultados</div>
+                    <div className="px-4 py-2 text-gray-400 text-sm">
+                      Sin resultados
+                    </div>
                   )
                 )}
 
@@ -157,7 +213,6 @@ export default function ContactSelect({
                 )}
               </Select.Viewport>
 
-              {/* Sticky Footer: Agregar contacto */}
               <div className="sticky bottom-0 bg-white border-t border-gray-200">
                 <div
                   onClick={() => {
@@ -180,4 +235,13 @@ export default function ContactSelect({
       </Select.Root>
     </div>
   );
+}
+
+const ContactSelectFieldMemo = memo(ContactSelectField, contactSelectPropsEqual);
+
+export default function ContactSelect(props: Props) {
+  if (props.mode === "preview") {
+    return <span className="font-semibold">{props.value?.email || "—"}</span>;
+  }
+  return <ContactSelectFieldMemo {...props} />;
 }

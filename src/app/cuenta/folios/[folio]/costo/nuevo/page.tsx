@@ -77,21 +77,23 @@ export default function QuoteCreatePage() {
     ]);
   const removeItem = (i) => setItems(items.filter((_, index) => index !== i));
   const updateItem = async (index, field, value) => {
-    const updated = [...items];
     const keys = field.split(".");
-
-    let obj = updated[index];
-
-    keys.forEach((key, i) => {
-      if (i === keys.length - 1) {
-        obj[key] = value;
-      } else {
-        obj[key] = obj[key] ?? {};
-        obj = obj[key];
-      }
-    });
-
-    setItems(updated);
+    setItems((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item;
+        const next = { ...item };
+        let obj = next;
+        keys.forEach((key, i) => {
+          if (i === keys.length - 1) {
+            obj[key] = value;
+          } else {
+            obj[key] = { ...(obj[key] ?? {}) };
+            obj = obj[key];
+          }
+        });
+        return next;
+      }),
+    );
   };
 
   const handleCreateQuote = async () => {
