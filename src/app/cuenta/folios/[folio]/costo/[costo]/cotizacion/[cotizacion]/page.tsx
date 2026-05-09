@@ -46,6 +46,10 @@ export default function QuoteCreatePage() {
   }>({ visible: false, message: "", type: "error" });
   let isMounted = false;
   const [items, setItems] = useState([]);
+  const [documentTotalsFromDb, setDocumentTotalsFromDb] = useState<{
+    subtotal: number;
+    total: number;
+  } | null>(null);
   useEffect(() => {
     if (currentFolio) {
       if (isMounted) return;
@@ -63,6 +67,14 @@ export default function QuoteCreatePage() {
           setNotes(find_quote?.notes);
           setValidUntil(find_quote?.period_end_date);
           setCustomer(find_quote?.customer);
+          if (find_quote != null) {
+            setDocumentTotalsFromDb({
+              subtotal: Number(find_quote.subtotal ?? 0),
+              total: Number(find_quote.total ?? 0),
+            });
+          } else {
+            setDocumentTotalsFromDb(null);
+          }
         } catch (error) {
           console.error("Error loading folio:", error);
         }
@@ -122,6 +134,7 @@ export default function QuoteCreatePage() {
           } as ContactInterface
         }
         setContact={undefined}
+        documentTotalsFromDb={documentTotalsFromDb}
       />
 
       <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-gray-300">

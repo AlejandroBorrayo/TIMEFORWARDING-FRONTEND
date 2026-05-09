@@ -65,6 +65,8 @@ const DEFAULT_QUOTE_LOGO_URL =
   "https://i.postimg.cc/tRx2S91P/Captura-de-pantalla-2025-12-05-a-la(s)-3-46-29-p-m.png";
 
 type QuoteEditorProps = {
+  /** Subtotal y total guardados en API (vista de costo/cotización ya persistidos). El IVA se sigue derivando de `items`. */
+  documentTotalsFromDb?: { subtotal: number; total: number } | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- props legacy del editor
   [key: string]: any;
 };
@@ -93,6 +95,7 @@ export default function QuoteEditor({
   customer,
   contact,
   setContact,
+  documentTotalsFromDb = null,
 }: QuoteEditorProps) {
   const { activeCompany } = useSelectedCompany();
   const quoteLogoSrc = activeCompany?.logo?.trim() || DEFAULT_QUOTE_LOGO_URL;
@@ -184,6 +187,20 @@ export default function QuoteEditor({
     : items.some((it) => normalizeLineCurrency(it?.currency) === "EUR")
       ? "EUR"
       : currency;
+
+  const hasDbDocumentTotals =
+    documentTotalsFromDb != null &&
+    Number.isFinite(Number(documentTotalsFromDb.subtotal)) &&
+    Number.isFinite(Number(documentTotalsFromDb.total));
+  const footerSubtotal = hasDbDocumentTotals
+    ? Number(documentTotalsFromDb.subtotal)
+    : subtotal;
+  const footerTotal = hasDbDocumentTotals
+    ? Number(documentTotalsFromDb.total)
+    : total;
+
+  /** Columnas Total / Total USD / Total EUR leídas de campos persistidos en ítem + totales de documento. */
+  const usePersistedLineTotals = hasDbDocumentTotals;
 
   const hasUsdLine = items.some(
     (it) => normalizeLineCurrency(it?.currency) === "USD",
@@ -474,19 +491,80 @@ export default function QuoteEditor({
   }, [hasUsdLine, itemsFxFingerprint]);
 
   useEffect(() => {
-    const unitForTax = (row: (typeof items)[0], idx: number) => {
-      if (hasUsdLine) return usdUnitForRow(row, idx);
-      if (hasEurLine) return eurUnitForRow(row, idx);
-      return Number(row?.amount ?? 0);
+    const rowNativeSub = (row: (typeof items)[0]) =>
+      Number(row.quantity) * Number(row.amount ?? 0);
+
+    const ratesOk = Boolean(
+      docUsdRatesPayload?.rates &&
+        Object.keys(docUsdRatesPayload.rates).length > 0,
+    );
+
+    /**
+     * IVA agregado en USD: prioriza `usd_amount` persistido (unitario equivalente USD)
+     * para no usar el preview FX de `usdUnitForRow`, que desvía centavos vs la base.
+     */
+    const lineTaxForSummaryUsd = (
+      row: (typeof items)[0],
+      idx: number,
+      taxp: number,
+    ) => {
+      const q = Number(row.quantity ?? 0);
+      const storedUsd = Number(row?.usd_amount ?? 0);
+      if (Number.isFinite(q) && Number.isFinite(storedUsd) && storedUsd > 0) {
+        return q * storedUsd * taxp;
+      }
+      const ccy = normalizeLineCurrency(row.currency);
+      if (!ccy) return 0;
+      if (ccy === "USD") return rowNativeSub(row) * taxp;
+      const taxNative = rowNativeSub(row) * taxp;
+      if (ratesOk) {
+        const c = convertAmountWithUsdBaseRates(
+          taxNative,
+          ccy,
+          "USD",
+          docUsdRatesPayload,
+        );
+        if (c != null) return c;
+      }
+      return q * usdUnitForRow(row, idx) * taxp;
+    };
+
+    const lineTaxForSummaryEur = (
+      row: (typeof items)[0],
+      idx: number,
+      taxp: number,
+    ) => {
+      const q = Number(row.quantity ?? 0);
+      const storedEur = Number(row?.eur_amount ?? 0);
+      if (Number.isFinite(q) && Number.isFinite(storedEur) && storedEur > 0) {
+        return q * storedEur * taxp;
+      }
+      const ccy = normalizeLineCurrency(row.currency);
+      if (!ccy) return 0;
+      if (ccy === "EUR") return rowNativeSub(row) * taxp;
+      const taxNative = rowNativeSub(row) * taxp;
+      if (ratesOk) {
+        const c = convertAmountWithUsdBaseRates(
+          taxNative,
+          ccy,
+          "EUR",
+          docUsdRatesPayload,
+        );
+        if (c != null) return c;
+      }
+      return q * eurUnitForRow(row, idx) * taxp;
     };
 
     const impMap = new Map<string, number>();
     items.forEach((row, idx) => {
       if (!row?.tax?.name || row.tax.name === "sin impuesto") return;
-      const currentAmount = impMap.get(row.tax.name) || 0;
-      const taxAmount = Number(row?.tax?.amount || 0) / 100;
-      const u = unitForTax(row, idx);
-      impMap.set(row.tax.name, currentAmount + row.quantity * u * taxAmount);
+      const taxp = Number(row?.tax?.amount || 0) / 100;
+      const inc = hasUsdLine
+        ? lineTaxForSummaryUsd(row, idx, taxp)
+        : hasEurLine
+          ? lineTaxForSummaryEur(row, idx, taxp)
+          : rowNativeSub(row) * taxp;
+      impMap.set(row.tax.name, (impMap.get(row.tax.name) || 0) + inc);
     });
     const imp = Array.from(impMap.entries()).map(([name, amount]) => ({
       name,
@@ -501,8 +579,6 @@ export default function QuoteEditor({
       }
     }
     if (hasUsdLine) {
-      const rowNativeSub = (row: (typeof items)[0]) =>
-        Number(row.quantity) * Number(row.amount ?? 0);
       const rowNativeTot = (row: (typeof items)[0]) => {
         const sub = rowNativeSub(row);
         const taxp = Number(row?.tax?.amount || 0) / 100;
@@ -811,40 +887,91 @@ export default function QuoteEditor({
           {items.map((it, i) => {
             const porcentaje = Number(it?.tax?.amount || 0);
             const impuestoNombre = it?.tax?.name;
+            const taxp = porcentaje / 100;
+            const q = Number(it.quantity ?? 0);
 
             const subtotal = it.quantity * it.amount;
-            const impuestoMonto = subtotal * (porcentaje / 100);
-            const total = subtotal + impuestoMonto;
+            const impuestoMonto = subtotal * taxp;
+            const totalFromDb = Number(it?.total);
+            const hasPersistedLineTotal =
+              usePersistedLineTotals && Number.isFinite(totalFromDb);
+            const total = hasPersistedLineTotal
+              ? totalFromDb
+              : subtotal + impuestoMonto;
 
             const usdUnit = usdUnitForRow(it, i);
             const usd_subtotal = it.quantity * usdUnit;
-            const usd_impuesto_monto = usd_subtotal * (porcentaje / 100);
-            const usd_amount = usd_subtotal + usd_impuesto_monto;
+            const usd_impuesto_monto = usd_subtotal * taxp;
+            const usdLineTotalFromPreview = usd_subtotal + usd_impuesto_monto;
 
             const lineCcy = normalizeLineCurrency(it.currency);
-            let usdTotalDisplay = usd_amount;
-            if (
-              hasUsdLine &&
-              docUsdRatesPayload?.rates &&
-              Object.keys(docUsdRatesPayload.rates).length > 0
-            ) {
+            let usdTotalDisplay: number;
+            if (usePersistedLineTotals) {
               if (lineCcy === "USD") {
                 usdTotalDisplay = total;
               } else {
-                const conv = convertAmountWithUsdBaseRates(
-                  total,
-                  lineCcy,
-                  "USD",
-                  docUsdRatesPayload,
-                );
-                if (conv != null) usdTotalDisplay = conv;
+                const uStore = Number(it?.usd_amount ?? 0);
+                if (Number.isFinite(q) && Number.isFinite(uStore) && uStore > 0) {
+                  usdTotalDisplay = q * uStore * (1 + taxp);
+                } else if (
+                  hasUsdLine &&
+                  docUsdRatesPayload?.rates &&
+                  Object.keys(docUsdRatesPayload.rates).length > 0
+                ) {
+                  const conv = convertAmountWithUsdBaseRates(
+                    total,
+                    lineCcy,
+                    "USD",
+                    docUsdRatesPayload,
+                  );
+                  usdTotalDisplay =
+                    conv != null ? conv : usdLineTotalFromPreview;
+                } else {
+                  usdTotalDisplay = usdLineTotalFromPreview;
+                }
+              }
+            } else {
+              usdTotalDisplay = usdLineTotalFromPreview;
+              if (
+                hasUsdLine &&
+                docUsdRatesPayload?.rates &&
+                Object.keys(docUsdRatesPayload.rates).length > 0
+              ) {
+                if (lineCcy === "USD") {
+                  usdTotalDisplay = total;
+                } else {
+                  const conv = convertAmountWithUsdBaseRates(
+                    total,
+                    lineCcy,
+                    "USD",
+                    docUsdRatesPayload,
+                  );
+                  if (conv != null) usdTotalDisplay = conv;
+                }
               }
             }
 
             const eurUnit = eurUnitForRow(it, i);
             const eur_subtotal = it.quantity * eurUnit;
-            const eur_impuesto_monto = eur_subtotal * (porcentaje / 100);
-            const eurLineTotal = eur_subtotal + eur_impuesto_monto;
+            const eur_impuesto_monto = eur_subtotal * taxp;
+            const eurLineTotalFromPreview =
+              eur_subtotal + eur_impuesto_monto;
+
+            let eurLineTotal: number;
+            if (usePersistedLineTotals) {
+              if (lineCcy === "EUR") {
+                eurLineTotal = total;
+              } else {
+                const eStore = Number(it?.eur_amount ?? 0);
+                if (Number.isFinite(q) && Number.isFinite(eStore) && eStore > 0) {
+                  eurLineTotal = q * eStore * (1 + taxp);
+                } else {
+                  eurLineTotal = eurLineTotalFromPreview;
+                }
+              }
+            } else {
+              eurLineTotal = eurLineTotalFromPreview;
+            }
 
             return (
               <tr
@@ -1115,7 +1242,7 @@ export default function QuoteEditor({
         <div className="grid grid-cols-[140px_auto] gap-x-8 text-right">
           <span className="text-gray-600">Subtotal</span>
           <span style={{ minWidth: "120px" }}>
-            {formatCurrency(subtotal, summaryCurrency)}
+            {formatCurrency(footerSubtotal, summaryCurrency)}
           </span>
         </div>
 
@@ -1139,7 +1266,7 @@ export default function QuoteEditor({
         <div className="grid grid-cols-[140px_auto] gap-x-8 text-right pt-1 ">
           <span className="font-semibold text-lg">Total</span>
           <span style={{ minWidth: "120px" }} className="font-bold text-lg">
-            {formatCurrency(total, summaryCurrency)}
+            {formatCurrency(footerTotal, summaryCurrency)}
           </span>
         </div>
       </div>

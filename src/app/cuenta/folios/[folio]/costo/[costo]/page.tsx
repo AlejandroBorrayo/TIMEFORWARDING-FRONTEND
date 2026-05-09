@@ -32,6 +32,10 @@ export default function QuoteCreatePage() {
   const [visibleQuotesModal, setVisibleQuotesModal] = useState(false);
   let isMounted = false;
   const [items, setItems] = useState([]);
+  const [documentTotalsFromDb, setDocumentTotalsFromDb] = useState<{
+    subtotal: number;
+    total: number;
+  } | null>(null);
 
   useEffect(() => {
     if (currentFolio) {
@@ -45,6 +49,14 @@ export default function QuoteCreatePage() {
           setCurrency(find_service_cost?.currency);
           setItems(find_service_cost?.items);
           setServiceCost(find_service_cost);
+          if (find_service_cost != null) {
+            setDocumentTotalsFromDb({
+              subtotal: Number(find_service_cost.subtotal ?? 0),
+              total: Number(find_service_cost.total ?? 0),
+            });
+          } else {
+            setDocumentTotalsFromDb(null);
+          }
         } catch (error) {
           console.error("Error loading folio:", error);
         }
@@ -99,6 +111,7 @@ export default function QuoteCreatePage() {
         customer={undefined}
         contact={undefined}
         setContact={undefined}
+        documentTotalsFromDb={documentTotalsFromDb}
       />
 
       <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-gray-300">
