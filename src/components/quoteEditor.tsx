@@ -59,6 +59,11 @@ function normalizeLineCurrency(c: unknown): string {
   return c.trim().toUpperCase();
 }
 
+function finiteNumberOrUndef(v: unknown): number | undefined {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 import { useSelectedCompany } from "@/context/selectedCompanyContext";
 
 const DEFAULT_QUOTE_LOGO_URL =
@@ -202,12 +207,12 @@ export default function QuoteEditor({
   /** Columnas Total / Total USD / Total EUR leídas de campos persistidos en ítem + totales de documento. */
   const usePersistedLineTotals = hasDbDocumentTotals;
 
-  const hasUsdLine = items.some(
-    (it) => normalizeLineCurrency(it?.currency) === "USD",
-  );
-  const hasEurLine = items.some(
-    (it) => normalizeLineCurrency(it?.currency) === "EUR",
-  );
+  const hasUsdLine =
+    items.some((it) => normalizeLineCurrency(it?.currency) === "USD") ||
+    items.some((it) => finiteNumberOrUndef(it?.total_usd) !== undefined);
+  const hasEurLine =
+    items.some((it) => normalizeLineCurrency(it?.currency) === "EUR") ||
+    items.some((it) => finiteNumberOrUndef(it?.total_eur) !== undefined);
   /** Si hay USD y EUR en el mismo documento, solo se muestra la columna en USD. */
   const showEurColumn = hasEurLine && !hasUsdLine;
   const canMutateItems = typeof updateItem === "function";
@@ -889,24 +894,39 @@ export default function QuoteEditor({
             const impuestoNombre = it?.tax?.name;
             const taxp = porcentaje / 100;
             const q = Number(it.quantity ?? 0);
+            const lineCcy = normalizeLineCurrency(it.currency);
 
             const subtotal = it.quantity * it.amount;
             const impuestoMonto = subtotal * taxp;
+            const dbMxn = finiteNumberOrUndef(it?.total_mxn);
+            const dbUsd = finiteNumberOrUndef(it?.total_usd);
+            const dbEur = finiteNumberOrUndef(it?.total_eur);
             const totalFromDb = Number(it?.total);
             const hasPersistedLineTotal =
               usePersistedLineTotals && Number.isFinite(totalFromDb);
-            const total = hasPersistedLineTotal
-              ? totalFromDb
-              : subtotal + impuestoMonto;
+
+            let total: number;
+            if (lineCcy === "MXN" && dbMxn !== undefined) {
+              total = dbMxn;
+            } else if (lineCcy === "USD" && dbUsd !== undefined) {
+              total = dbUsd;
+            } else if (lineCcy === "EUR" && dbEur !== undefined) {
+              total = dbEur;
+            } else if (hasPersistedLineTotal) {
+              total = totalFromDb;
+            } else {
+              total = subtotal + impuestoMonto;
+            }
 
             const usdUnit = usdUnitForRow(it, i);
             const usd_subtotal = it.quantity * usdUnit;
             const usd_impuesto_monto = usd_subtotal * taxp;
             const usdLineTotalFromPreview = usd_subtotal + usd_impuesto_monto;
 
-            const lineCcy = normalizeLineCurrency(it.currency);
             let usdTotalDisplay: number;
-            if (usePersistedLineTotals) {
+            if (dbUsd !== undefined) {
+              usdTotalDisplay = dbUsd;
+            } else if (usePersistedLineTotals) {
               if (lineCcy === "USD") {
                 usdTotalDisplay = total;
               } else {
@@ -958,7 +978,9 @@ export default function QuoteEditor({
               eur_subtotal + eur_impuesto_monto;
 
             let eurLineTotal: number;
-            if (usePersistedLineTotals) {
+            if (dbEur !== undefined) {
+              eurLineTotal = dbEur;
+            } else if (usePersistedLineTotals) {
               if (lineCcy === "EUR") {
                 eurLineTotal = total;
               } else {

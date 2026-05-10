@@ -12,6 +12,7 @@ import { ContactInterface } from "@/type/customer.interface";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/toast";
 import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
+import { buildItemCurrencyTotalsPayload } from "@/app/utils/itemCurrencyTotals";
 import { useSelectedCompany } from "@/context/selectedCompanyContext";
 
 const DEFAULT_QUOTE_LOGO_URL =
@@ -118,6 +119,7 @@ export default function QuoteCreatePage() {
             quantity: item.quantity,
             tax: item.tax,
             supplier_id: item.supplier?._id || "",
+            ...buildItemCurrencyTotalsPayload(item),
           };
         }),
       };

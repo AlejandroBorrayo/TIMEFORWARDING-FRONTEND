@@ -13,6 +13,9 @@ export interface Item {
   quantity: number;
   tax: Tax;
   supplier_id: string;
+  total_mxn?: number;
+  total_usd?: number;
+  total_eur?: number;
 }
 
 export interface QuoteDto {

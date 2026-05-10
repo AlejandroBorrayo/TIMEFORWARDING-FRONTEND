@@ -9,6 +9,7 @@ import { FolioDtoInterface } from "@/type/folio.dto";
 import { Toast } from "@/components/toast";
 import { isValidMongoObjectId } from "@/app/utils";
 import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
+import { buildItemCurrencyTotalsPayload } from "@/app/utils/itemCurrencyTotals";
 import { useSelectedCompany } from "@/context/selectedCompanyContext";
 
 const DEFAULT_QUOTE_LOGO_URL =
@@ -135,6 +136,7 @@ export default function QuoteCreatePage() {
             quantity: item.quantity,
             tax: item.tax,
             supplier_id: item.supplier?._id || "",
+            ...buildItemCurrencyTotalsPayload(item),
           };
         }),
       };

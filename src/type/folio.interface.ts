@@ -42,6 +42,9 @@ export interface ItemInterface {
   quantity: number;
   tax: TaxInterface;
   supplier: SupplierInterface;
+  total_mxn?: number;
+  total_usd?: number;
+  total_eur?: number;
 }
 
 export interface CustomerInterface {

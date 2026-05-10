@@ -13,6 +13,12 @@ export interface Item {
   quantity: number;
   tax: Tax;
   supplier_id: string;
+  /** Total de línea (con IVA de la fila) en MXN, si aplica. */
+  total_mxn?: number;
+  /** Total de línea (con IVA de la fila) en USD, si aplica. */
+  total_usd?: number;
+  /** Total de línea (con IVA de la fila) en EUR, si aplica. */
+  total_eur?: number;
 }
 
 export interface FolioDtoInterface {
