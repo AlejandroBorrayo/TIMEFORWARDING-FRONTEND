@@ -12,7 +12,7 @@ import { ContactInterface } from "@/type/customer.interface";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/toast";
 import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
-import { buildItemCurrencyTotalsPayload } from "@/app/utils/itemCurrencyTotals";
+import { buildItemCurrencyTotalsPayload, resolveDocumentTotalsFromItems } from "@/app/utils/itemCurrencyTotals";
 import { useSelectedCompany } from "@/context/selectedCompanyContext";
 
 const DEFAULT_QUOTE_LOGO_URL =
@@ -29,6 +29,11 @@ export default function QuoteCreatePage() {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [loadingQuote, setLoadingServiceCost] = useState(false);
   const [currency, setCurrency] = useState("MXN");
+  const [editorTotals, setEditorTotals] = useState<{
+    subtotal: number;
+    total: number;
+    currency: string;
+  } | null>(null);
   const [customer, setCustomer] = useState<CustomerInterface | null>(null);
   const [contact, setContact] = useState<ContactInterface | null>(null);
   const [validUntil, setValidUntil] = useState<Date | null>(null);
@@ -97,32 +102,40 @@ export default function QuoteCreatePage() {
       const logoUrl =
         activeCompany?.logo?.trim() || DEFAULT_QUOTE_LOGO_URL;
       const company_name = activeCompany?.name?.trim() || "";
+      const mappedItems = items?.map((item) => ({
+        name: item.name,
+        currency: item.currency,
+        description: item.description,
+        amount: item.amount,
+        usd_amount: item.usd_amount,
+        eur_amount: Number(item.eur_amount ?? 0),
+        quantity: item.quantity,
+        tax: item.tax,
+        supplier_id: item.supplier?._id || "",
+        ...buildItemCurrencyTotalsPayload(item),
+      }));
+
+      // Usa los totales calculados por el editor (en la moneda correcta de conversión).
+      // Si el editor aún no los tiene, calcula como fallback desde los ítems.
+      const { subtotal: docSubtotal, total: docTotal } =
+        editorTotals ?? resolveDocumentTotalsFromItems(mappedItems, quoteCurrency);
+
       const quote: QuoteDto = {
         logo_url: logoUrl,
         company_name,
         seller_userid: userid,
         customer_id: customer?._id,
-        currency: quoteCurrency,
+        currency: editorTotals?.currency ?? quoteCurrency,
         notes: noteLines,
         period_end_date: validUntil,
         contact_id: contact?._id,
         folio: currentFolio,
         service_cost: cost_service?._id,
-        items: items?.map((item) => {
-          return {
-            name: item.name,
-            currency: item.currency,
-            description: item.description,
-            amount: item.amount,
-            usd_amount: item.usd_amount,
-            eur_amount: Number(item.eur_amount ?? 0),
-            quantity: item.quantity,
-            tax: item.tax,
-            supplier_id: item.supplier?._id || "",
-            ...buildItemCurrencyTotalsPayload(item),
-          };
-        }),
+        subtotal: docSubtotal,
+        total: docTotal,
+        items: mappedItems,
       };
+
 
       const quote_create = await CreateQuote(quote);
       setToast({
@@ -240,6 +253,7 @@ export default function QuoteCreatePage() {
         pickCatalogNote={pickCatalogNote}
         setContact={setContact}
         contact={contact}
+        onTotalsChange={setEditorTotals}
       />
       <div className="flex justify-end mt-10">
         <button

@@ -72,6 +72,12 @@ const DEFAULT_QUOTE_LOGO_URL =
 type QuoteEditorProps = {
   /** Subtotal y total guardados en API (vista de costo/cotización ya persistidos). El IVA se sigue derivando de `items`. */
   documentTotalsFromDb?: { subtotal: number; total: number } | null;
+  /** Callback que se dispara cada vez que cambian los totales del footer (subtotal, total y moneda). */
+  onTotalsChange?: (totals: {
+    subtotal: number;
+    total: number;
+    currency: string;
+  }) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- props legacy del editor
   [key: string]: any;
 };
@@ -101,6 +107,7 @@ export default function QuoteEditor({
   contact,
   setContact,
   documentTotalsFromDb = null,
+  onTotalsChange,
 }: QuoteEditorProps) {
   const { activeCompany } = useSelectedCompany();
   const quoteLogoSrc = activeCompany?.logo?.trim() || DEFAULT_QUOTE_LOGO_URL;
@@ -184,37 +191,150 @@ export default function QuoteEditor({
     }).format(n);
   };
 
-  /** Moneda del resumen (misma prioridad que subtotal/impuestos/total). Derivada de `items` para no desfasarse un render del estado. */
-  const summaryCurrency = items.some(
-    (it) => normalizeLineCurrency(it?.currency) === "USD",
-  )
-    ? "USD"
-    : items.some((it) => normalizeLineCurrency(it?.currency) === "EUR")
-      ? "EUR"
-      : currency;
-
   const hasDbDocumentTotals =
     documentTotalsFromDb != null &&
     Number.isFinite(Number(documentTotalsFromDb.subtotal)) &&
     Number.isFinite(Number(documentTotalsFromDb.total));
-  const footerSubtotal = hasDbDocumentTotals
-    ? Number(documentTotalsFromDb.subtotal)
-    : subtotal;
-  const footerTotal = hasDbDocumentTotals
-    ? Number(documentTotalsFromDb.total)
-    : total;
 
   /** Columnas Total / Total USD / Total EUR leídas de campos persistidos en ítem + totales de documento. */
   const usePersistedLineTotals = hasDbDocumentTotals;
 
+  const allMxn =
+    items.length > 0 &&
+    items.every((it) => normalizeLineCurrency(it?.currency) === "MXN");
+  const allUsd =
+    items.length > 0 &&
+    items.every((it) => normalizeLineCurrency(it?.currency) === "USD");
+  const allEur =
+    items.length > 0 &&
+    items.every((it) => normalizeLineCurrency(it?.currency) === "EUR");
+  /** La visibilidad de columnas se basa únicamente en la moneda de cada ítem,
+   *  no en campos persistidos (total_usd/total_eur), para evitar que ítems MXN
+   *  con conversiones guardadas activen columnas que no corresponden. */
+  const allSameCurrency = allMxn || allUsd || allEur;
   const hasUsdLine =
-    items.some((it) => normalizeLineCurrency(it?.currency) === "USD") ||
-    items.some((it) => finiteNumberOrUndef(it?.total_usd) !== undefined);
+    !allSameCurrency &&
+    items.some((it) => normalizeLineCurrency(it?.currency) === "USD");
   const hasEurLine =
-    items.some((it) => normalizeLineCurrency(it?.currency) === "EUR") ||
-    items.some((it) => finiteNumberOrUndef(it?.total_eur) !== undefined);
+    !allSameCurrency &&
+    items.some((it) => normalizeLineCurrency(it?.currency) === "EUR");
   /** Si hay USD y EUR en el mismo documento, solo se muestra la columna en USD. */
   const showEurColumn = hasEurLine && !hasUsdLine;
+
+  /** Moneda del resumen: prioridad a la columna de conversión visible.
+   *  Si hay columna "Total USD" → USD; si hay "Total EUR" → EUR;
+   *  si todos son la misma moneda → esa moneda; si no → moneda del documento. */
+  const summaryCurrency = hasUsdLine
+    ? "USD"
+    : showEurColumn
+      ? "EUR"
+      : items.some((it) => normalizeLineCurrency(it?.currency) === "USD")
+        ? "USD"
+        : items.some((it) => normalizeLineCurrency(it?.currency) === "EUR")
+          ? "EUR"
+          : currency;
+
+  /**
+   * Totales sincrónicos en EUR / USD calculados directamente desde los campos de cada ítem.
+   * Se priorizan sobre el estado asíncrono para evitar parpadeos y valores erróneos
+   * mientras `previewEurByIndex` / `previewUsdByIndex` aún no están listos.
+   *
+   * Prioridad por fila (EUR):
+   *   1. ítem en EUR            → amount nativo
+   *   2. total_eur persistido   → total con IVA ya incluido
+   *   3. eur_amount (precio unitario convertido) * quantity
+   */
+  const syncFooterEur = useMemo(() => {
+    if (!showEurColumn) return null;
+    let sub = 0;
+    let tot = 0;
+    for (const row of items) {
+      const ccy = normalizeLineCurrency(row?.currency);
+      const q = Number(row?.quantity ?? 0);
+      const taxp = Number(row?.tax?.amount || 0) / 100;
+      if (ccy === "EUR") {
+        const native = q * Number(row?.amount ?? 0);
+        sub += native;
+        tot += native * (1 + taxp);
+      } else {
+        const storedTotal = finiteNumberOrUndef(row?.total_eur);
+        if (storedTotal !== undefined && storedTotal > 0) {
+          tot += storedTotal;
+          sub += storedTotal / (1 + taxp);
+        } else {
+          const unitEur = Number(row?.eur_amount ?? 0);
+          if (unitEur > 0) {
+            sub += q * unitEur;
+            tot += q * unitEur * (1 + taxp);
+          }
+        }
+      }
+    }
+    return { sub, tot };
+  }, [showEurColumn, items]);
+
+  /**
+   * Totales sincrónicos en USD (mismo criterio que EUR).
+   */
+  const syncFooterUsd = useMemo(() => {
+    if (!hasUsdLine) return null;
+    let sub = 0;
+    let tot = 0;
+    for (const row of items) {
+      const ccy = normalizeLineCurrency(row?.currency);
+      const q = Number(row?.quantity ?? 0);
+      const taxp = Number(row?.tax?.amount || 0) / 100;
+      if (ccy === "USD") {
+        const native = q * Number(row?.amount ?? 0);
+        sub += native;
+        tot += native * (1 + taxp);
+      } else {
+        const storedTotal = finiteNumberOrUndef(row?.total_usd);
+        if (storedTotal !== undefined && storedTotal > 0) {
+          tot += storedTotal;
+          sub += storedTotal / (1 + taxp);
+        } else {
+          const unitUsd = Number(row?.usd_amount ?? 0);
+          if (unitUsd > 0) {
+            sub += q * unitUsd;
+            tot += q * unitUsd * (1 + taxp);
+          }
+        }
+      }
+    }
+    return { sub, tot };
+  }, [hasUsdLine, items]);
+
+  /**
+   * Los totales del DB solo aplican cuando no hay columna de conversión activa.
+   * Cuando hay EUR o USD visibles, los totales sincrónicos de conversión toman prioridad.
+   */
+  const useDbTotals = hasDbDocumentTotals && !hasUsdLine && !showEurColumn;
+  const footerSubtotal = hasUsdLine && syncFooterUsd
+    ? syncFooterUsd.sub
+    : showEurColumn && syncFooterEur
+      ? syncFooterEur.sub
+      : useDbTotals
+        ? Number(documentTotalsFromDb.subtotal)
+        : subtotal;
+  const footerTotal = hasUsdLine && syncFooterUsd
+    ? syncFooterUsd.tot
+    : showEurColumn && syncFooterEur
+      ? syncFooterEur.tot
+      : useDbTotals
+        ? Number(documentTotalsFromDb.total)
+        : total;
+
+  /** Notifica al padre cada vez que cambian subtotal, total o moneda del resumen. */
+  useEffect(() => {
+    if (typeof onTotalsChange !== "function") return;
+    onTotalsChange({
+      subtotal: footerSubtotal,
+      total: footerTotal,
+      currency: summaryCurrency,
+    });
+  }, [footerSubtotal, footerTotal, summaryCurrency, onTotalsChange]);
+
   const canMutateItems = typeof updateItem === "function";
 
   const itemsFxFingerprint = useMemo(() => {
@@ -728,16 +848,31 @@ export default function QuoteEditor({
     setContact(contactFind);
   };
 
+  /** Limpia totales persistidos del ítem para que el row recalcule desde amount×quantity. */
+  const clearPersistedLineTotals = (i: number) => {
+    updateItem(i, "total_mxn", undefined);
+    updateItem(i, "total_usd", undefined);
+    updateItem(i, "total_eur", undefined);
+    updateItem(i, "total", undefined);
+  };
+
   const handleChangeAmount = async (data: number, i: number) => {
     updateItem(i, "amount", data);
+    clearPersistedLineTotals(i);
     const row = items?.[i];
     if (row?.currency) {
       await syncUsdEurFromUnitPrice(i, data, row.currency);
     }
   };
 
+  const handleChangeQuantity = (data: number, i: number) => {
+    updateItem(i, "quantity", data);
+    clearPersistedLineTotals(i);
+  };
+
   const handleChangeCurrency = async (data: string, i: number) => {
     updateItem(i, "currency", data);
+    clearPersistedLineTotals(i);
     const row = items?.[i];
     if (row && data) {
       await syncUsdEurFromUnitPrice(i, row.amount, data);
@@ -1066,7 +1201,7 @@ export default function QuoteEditor({
                     kind="number"
                     mode={mode}
                     value={it.quantity}
-                    onChange={(v) => updateItem(i, "quantity", Number(v))}
+                    onChange={(v) => handleChangeQuantity(Number(v), i)}
                     className="w-[80px] text-center"
                   />
                 </td>

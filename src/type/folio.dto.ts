@@ -24,8 +24,12 @@ export interface Item {
 export interface FolioDtoInterface {
   seller_userid: string;
   items: Item[];
-  logo_url:string;
-  company_name:string;
+  logo_url: string;
+  company_name: string;
   currency?: string;
   current_folio?: string;
+  /** Subtotal del documento en la moneda resuelta (sin impuestos). */
+  subtotal?: number;
+  /** Total del documento en la moneda resuelta (con impuestos). */
+  total?: number;
 }

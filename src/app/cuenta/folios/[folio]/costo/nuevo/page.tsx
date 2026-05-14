@@ -9,7 +9,7 @@ import { FolioDtoInterface } from "@/type/folio.dto";
 import { Toast } from "@/components/toast";
 import { isValidMongoObjectId } from "@/app/utils";
 import { resolveDocumentCurrencyFromItems } from "@/app/utils/documentCurrency";
-import { buildItemCurrencyTotalsPayload } from "@/app/utils/itemCurrencyTotals";
+import { buildItemCurrencyTotalsPayload, resolveDocumentTotalsFromItems } from "@/app/utils/itemCurrencyTotals";
 import { useSelectedCompany } from "@/context/selectedCompanyContext";
 
 const DEFAULT_QUOTE_LOGO_URL =
@@ -25,6 +25,11 @@ export default function QuoteCreatePage() {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [loadingQuote, setLoadingServiceCost] = useState(false);
   const [currency, setCurrency] = useState("MXN");
+  const [editorTotals, setEditorTotals] = useState<{
+    subtotal: number;
+    total: number;
+    currency: string;
+  } | null>(null);
 
 
   const [toast, setToast] = useState<{
@@ -121,26 +126,32 @@ export default function QuoteCreatePage() {
         activeCompany?.logo?.trim() || DEFAULT_QUOTE_LOGO_URL;
       const company_name = activeCompany?.name?.trim() || "";
 
+      const mappedItems = items?.map((item) => ({
+        name: item.name,
+        currency: item.currency,
+        description: item.description,
+        amount: item.amount,
+        usd_amount: item.usd_amount,
+        eur_amount: Number(item.eur_amount ?? 0),
+        quantity: item.quantity,
+        tax: item.tax,
+        supplier_id: item.supplier?._id || "",
+        ...buildItemCurrencyTotalsPayload(item),
+      }));
+
+      // Usa los totales calculados por el editor (en la moneda correcta de conversión).
+      // Si el editor aún no los tiene, calcula como fallback desde los ítems.
+      const { subtotal: docSubtotal, total: docTotal } = editorTotals ?? resolveDocumentTotalsFromItems(mappedItems, serviceCostCurrency);
+
       const serviceCosteData: FolioDtoInterface = {
         seller_userid: userid,
         current_folio: currentFolio,
         company_name,
         logo_url: logoUrl,
-        currency: serviceCostCurrency,
-        items: items?.map((item) => {
-          return {
-            name: item.name,
-            currency: item.currency,
-            description: item.description,
-            amount: item.amount,
-            usd_amount: item.usd_amount,
-            eur_amount: Number(item.eur_amount ?? 0),
-            quantity: item.quantity,
-            tax: item.tax,
-            supplier_id: item.supplier?._id || "",
-            ...buildItemCurrencyTotalsPayload(item),
-          };
-        }),
+        currency: editorTotals?.currency ?? serviceCostCurrency,
+        subtotal: docSubtotal,
+        total: docTotal,
+        items: mappedItems,
       };
 
       const folio = await CreateFolio(serviceCosteData);
@@ -199,6 +210,7 @@ export default function QuoteCreatePage() {
         customer={undefined}
         contact={undefined}
         setContact={undefined}
+        onTotalsChange={setEditorTotals}
       />
       <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-gray-300">
         <button
