@@ -833,12 +833,23 @@ export default function QuoteEditor({
   };
 
   const handleChangeSupplier = async (data: string, i: number) => {
-    const find = await FindSupplier(data);
-    const id = normalizeSupplierDocumentId(find);
-    updateItem(i, "supplier", {
-      name: find?.name ?? "",
-      _id: id,
-    });
+    try {
+      const find = await FindSupplier(data);
+      // data ya es el _id válido que viene del select; normalizeSupplierDocumentId
+      // se usa para normalizar el _id de la respuesta, pero data es el fallback seguro.
+      const id = normalizeSupplierDocumentId(find) || data;
+      updateItem(i, "supplier", {
+        name: find?.name ?? "",
+        _id: id,
+      });
+    } catch (err) {
+      console.error("Error al obtener proveedor:", err);
+      // Aunque falle la llamada al API, se persiste el _id que ya teníamos del select.
+      updateItem(i, "supplier", {
+        name: "",
+        _id: data,
+      });
+    }
   };
 
   const onChangeContact = async (contactEmail: string) => {
