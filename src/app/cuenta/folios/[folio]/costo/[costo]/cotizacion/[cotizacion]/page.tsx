@@ -13,6 +13,7 @@ import { useAuth } from "@/components/authProvider";
 import { Toast } from "@/components/toast";
 import { FolioDtoInterface } from "@/type/folio.dto";
 import { ContactInterface, CustomerInterface } from "@/type/customer.interface";
+import { QuoteInterface } from "@/type/folio.interface";
 
 export default function QuoteCreatePage() {
   const params = useParams();
@@ -26,6 +27,7 @@ export default function QuoteCreatePage() {
   const [loadingQuote, setLoadingServiceCost] = useState(false);
   const [currency, setCurrency] = useState("MXN");
   const [notes, setNotes] = useState([]);
+  const [currentQuote, setCurrentQuote] = useState<QuoteInterface | null>(null);
   const [validUntil, setValidUntil] = useState<Date | null>(null);
   const [customer, setCustomer] = useState<
     | {
@@ -57,16 +59,17 @@ export default function QuoteCreatePage() {
         try {
           const folio = await FindFolio(currentFolio);
           const find_service_cost = folio?.service_cost.find(
-            (cost) => cost.no_service_cost === currentCost
+            (cost) => cost.no_service_cost === currentCost,
           );
           const find_quote = find_service_cost?.quotes.find(
-            (quote) => quote.no_quote === currentCotizacion
+            (quote) => quote.no_quote === currentCotizacion,
           );
           setCurrency(find_quote?.currency);
           setItems(find_quote?.items);
           setNotes(find_quote?.notes);
           setValidUntil(find_quote?.period_end_date);
           setCustomer(find_quote?.customer);
+          setCurrentQuote(find_quote);
           if (find_quote != null) {
             setDocumentTotalsFromDb({
               subtotal: Number(find_quote.subtotal ?? 0),
@@ -85,10 +88,10 @@ export default function QuoteCreatePage() {
   }, [currentFolio]);
 
   const handleDownloadPdf = async () => {
-    if (!currentCotizacion?.trim() || downloadingPdf) return;
+    if (!currentQuote?._id || downloadingPdf) return;
     setDownloadingPdf(true);
     try {
-      await RegenerateQuotePdf(currentCotizacion.trim());
+      await RegenerateQuotePdf(currentQuote?._id);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "No se pudo generar el PDF.";

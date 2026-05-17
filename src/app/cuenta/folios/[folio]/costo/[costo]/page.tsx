@@ -67,10 +67,10 @@ export default function QuoteCreatePage() {
   }, [currentFolio]);
 
   const handleDownloadPdf = async () => {
-    if (!currentCost?.trim() || downloadingPdf) return;
+    if (!serviceCost?._id?.trim() || downloadingPdf) return;
     setDownloadingPdf(true);
     try {
-      await RegenerateServiceCostPdf(currentCost.trim());
+      await RegenerateServiceCostPdf(serviceCost?._id);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "No se pudo generar el PDF.";

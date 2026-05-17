@@ -147,12 +147,12 @@ export const CreateFolioWithoutCost = async (body: {
 
 /** Regenera y expone el PDF del costo de servicio (JSON con `pdf_url` o cuerpo `application/pdf`). */
 export const RegenerateServiceCostPdf = async (
-  no_service_cost: string
+  _id: string
 ): Promise<void> => {
   try {
     const response = await axios.post<Blob>(
       `${NEXT_PUBLIC_API_URL}/folio/service-cost/regenerate-pdf`,
-      withCompanyId({ no_service_cost }),
+      withCompanyId({ _id }),
       {
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",
@@ -198,11 +198,11 @@ export const RegenerateServiceCostPdf = async (
 };
 
 /** Regenera y expone el PDF de la cotización (JSON con `pdf_url` o cuerpo `application/pdf`). */
-export const RegenerateQuotePdf = async (no_quote: string): Promise<void> => {
+export const RegenerateQuotePdf = async (_id: string): Promise<void> => {
   try {
     const response = await axios.post<Blob>(
       `${NEXT_PUBLIC_API_URL}/folio/quote/regenerate-pdf`,
-      withCompanyId({ no_quote }),
+      withCompanyId({ _id }),
       {
         headers: {
           "x-api-key": process.env.NEXT_PUBLIC_X_API_KEY || "",

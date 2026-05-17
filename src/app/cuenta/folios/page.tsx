@@ -810,7 +810,7 @@ export default function FoliosPage() {
                                     <DropdownMenu.Item
                                       onSelect={() => {
                                         void handleDownloadServiceCostPdf(
-                                          serviceCost.no_service_cost,
+                                          serviceCost._id,
                                         );
                                       }}
                                       className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
@@ -971,7 +971,7 @@ export default function FoliosPage() {
                                             <DropdownMenu.Item
                                               onSelect={() => {
                                                 void handleDownloadQuotePdf(
-                                                  quote.no_quote,
+                                                  quote._id,
                                                 );
                                               }}
                                               className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
